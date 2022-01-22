@@ -4,6 +4,12 @@
 #ifndef BECQUEREL_BRLYT_H
 #define BECQUEREL_BRLYT_H
 
+struct Lyt1 : LayoutInfo {
+    static inline const std::string MAGIC = "lyt1";
+    bool read(std::istream &stream, bool revEndian);
+    bool write(std::ostream &stream, bool revEndian);
+};
+
 struct BrlytHeader : BaseHeader {
     static inline const std::string MAGIC = "RLYT";
     std::uint16_t bom;
@@ -19,12 +25,6 @@ struct Brlyt {
     BrlytHeader header;
     bool read(std::istream &stream);
     bool write(std::ostream &stream);
-};
-
-struct Lyt1 : LayoutInfo {
-    static inline const std::string MAGIC = "lyt1";
-    bool read(std::istream &stream, bool revEndian);
-    bool write(std::ostream &stream, bool revEndian);
 };
 
 #endif

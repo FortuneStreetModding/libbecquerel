@@ -2,6 +2,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <array>
 #include <vector>
 
 #ifndef BECQUEREL_COMMON_H
@@ -231,7 +232,7 @@ struct BaseMaterial {
 template<class IO>
 class TemporarySeek {
     public:
-    TemporarySeek(IO &s, long seekPos, int seekDir = std::ios::beg);
+    TemporarySeek(IO &s, long seekPos, std::ios::seekdir seekDir = std::ios::beg);
     ~TemporarySeek();
     private:
     IO *stream;

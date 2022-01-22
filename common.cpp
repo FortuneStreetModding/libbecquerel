@@ -4,7 +4,7 @@
 bool Txl1::read(std::istream &stream, bool revEndian, bool padding) {
     auto count = readNumber<std::uint16_t>(stream, revEndian);
     stream.seekg(2, std::ios::cur); // padding
-    auto pos = stream.tellg();
+    int pos = stream.tellg();
     for (int i=0; i<count; ++i) {
         auto off = readNumber<std::uint32_t>(stream, revEndian);
         if (padding) stream.seekg(4, std::ios::cur);
@@ -19,7 +19,7 @@ bool Txl1::read(std::istream &stream, bool revEndian, bool padding) {
 bool Fnl1::read(std::istream &stream, bool revEndian, bool padding) {
     auto count = readNumber<std::uint16_t>(stream, revEndian);
     stream.seekg(2, std::ios::cur); // padding
-    auto pos = stream.tellg();
+    int pos = stream.tellg();
     for (int i=0; i<count; ++i) {
         auto off = readNumber<std::uint32_t>(stream, revEndian);
         if (padding) stream.seekg(4, std::ios::cur);
@@ -32,15 +32,15 @@ bool Fnl1::read(std::istream &stream, bool revEndian, bool padding) {
 }
 
 template<class IO>
-TemporarySeek<IO>::TemporarySeek(IO &s, long seekPos, int seekDir = std::ios::beg) {
+TemporarySeek<IO>::TemporarySeek(IO &s, long seekPos, std::ios::seekdir seekDir) {
     stream = &s;
-    oldSeekPos = stream.tellg();
-    stream.seekg(seekPos, seekDir);
+    oldSeekPos = stream->tellg();
+    stream->seekg(seekPos, seekDir);
 }
 
 template<class IO>
 TemporarySeek<IO>::~TemporarySeek() {
-    stream.seekg(oldSeekPos);
+    stream->seekg(oldSeekPos);
 }
 
 std::string readFixedStr(std::istream &stream, int len) {

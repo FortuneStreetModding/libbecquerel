@@ -1,7 +1,7 @@
 #include "brlyt.h"
 
 bool Brlyt::read(std::istream &stream) {
-    header.read(stream);
+    return header.read(stream);
 }
 
 bool BrlytHeader::read(std::istream &stream) {
@@ -29,4 +29,6 @@ bool BrlytHeader::read(std::istream &stream) {
             fnl1.read(stream, reverseEndian, true);
         }
     }
+
+    return true;
 }
