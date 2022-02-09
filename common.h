@@ -105,6 +105,12 @@ struct Fnl1 : virtual Section {
     bool write(std::ostream &stream, bool revEndian, bool padding);
 };
 
+struct TextureTransform {
+    vec2<float> translate;
+    float rotate;
+    vec2<float> scale;
+};
+
 struct BlendMode {
     enum class Op : std::uint8_t {
         Disable = 0,

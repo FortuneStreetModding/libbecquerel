@@ -46,7 +46,7 @@ TemporarySeek<IO>::~TemporarySeek() {
 std::string readFixedStr(std::istream &stream, int len) {
     std::unique_ptr<char> buf(new char[len]);
     stream.read(buf.get(), len);
-    return buf.get();
+    return std::string(buf.get(), len);
 }
 
 std::string readNullTerminatedStr(std::istream &stream) {
