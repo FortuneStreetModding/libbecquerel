@@ -21,12 +21,21 @@ bool BrlytHeader::read(std::istream &stream) {
 
     for (int i=0; i<sectionCount; ++i) {
         auto sectionHeader = readFixedStr(stream, 4);
+        std::shared_ptr<Pan1> curPane;
         if (sectionHeader == Lyt1::MAGIC) {
             lyt1.read(stream, reverseEndian);
-        } else if (sectionHeader == Txl1::MAGIC) {
-            txl1.read(stream, reverseEndian, true);
-        } else if (sectionHeader == Fnl1::MAGIC) {
-            fnl1.read(stream, reverseEndian, true);
+        } else if (sectionHeader == Txl1<true>::MAGIC) {
+            txl1.read(stream, reverseEndian);
+        } else if (sectionHeader == Fnl1<true>::MAGIC) {
+            fnl1.read(stream, reverseEndian);
+        } else if (sectionHeader == Mat1::MAGIC) {
+            mat1.read(stream, reverseEndian);
+        } else if (sectionHeader == Pan1::MAGIC) {
+            curPane = std::make_unique<Pan1>();
+        }
+
+        if (!rootPane && sectionHeader == Pan1::MAGIC) {
+            rootPane = curPane;
         }
     }
 

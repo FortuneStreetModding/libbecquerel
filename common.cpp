@@ -1,7 +1,8 @@
 #include "common.h"
 #include <algorithm>
 
-bool Txl1::read(std::istream &stream, bool revEndian, bool padding) {
+template<bool padding>
+bool Txl1<padding>::read(std::istream &stream, bool revEndian) {
     auto count = readNumber<std::uint16_t>(stream, revEndian);
     stream.seekg(2, std::ios::cur); // padding
     int pos = stream.tellg();
@@ -16,7 +17,8 @@ bool Txl1::read(std::istream &stream, bool revEndian, bool padding) {
     return true;
 }
 
-bool Fnl1::read(std::istream &stream, bool revEndian, bool padding) {
+template<bool padding>
+bool Fnl1<padding>::read(std::istream &stream, bool revEndian) {
     auto count = readNumber<std::uint16_t>(stream, revEndian);
     stream.seekg(2, std::ios::cur); // padding
     int pos = stream.tellg();

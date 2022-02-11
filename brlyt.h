@@ -142,7 +142,29 @@ struct Material : BaseMaterial {
 };
 
 struct Mat1 {
+    static inline const std::string MAGIC = "mat1";
     std::vector<Material> materials;
+    bool read(std::istream &stream, bool revEndian);
+    bool write(std::ostream &stream, bool revEndian);
+};
+
+struct Pan1 : BasePane {
+    static inline const std::string MAGIC = "pan1";
+    std::uint8_t flags;
+    bool read(std::istream &stream, bool revEndian);
+    bool write(std::ostream &stream, bool revEndian);
+};
+
+struct Pic1 : Pan1 {
+    static inline const std::string MAGIC = "pic1";
+    std::vector<TexCoord> texCoords;
+    color8 colorTopLeft;
+    color8 colorTopRight;
+    color8 colorBottomLeft;
+    color8 colorBottomRight;
+    std::uint16_t materialIndex;
+    bool read(std::istream &stream, bool revEndian);
+    bool write(std::ostream &stream, bool revEndian);
 };
 
 struct BrlytHeader : BaseHeader {
@@ -150,9 +172,9 @@ struct BrlytHeader : BaseHeader {
     std::uint16_t bom;
     std::uint16_t headerSize;
     Lyt1 lyt1;
-    Txl1 txl1;
+    Txl1<true> txl1;
     Mat1 mat1;
-    Fnl1 fnl1;
+    Fnl1<true> fnl1;
     bool read(std::istream &stream);
     bool write(std::ostream &stream);
 };

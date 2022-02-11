@@ -42,6 +42,13 @@ enum class OriginY : std::uint8_t {
     CENTER, TOP, BOTTOM
 };
 
+struct TexCoord {
+    vec2<float> topLeft;
+    vec2<float> topRight;
+    vec2<float> bottomLeft;
+    vec2<float> bottomRight;
+};
+
 /**
  * @brief base class for sections in a layout file
  * 
@@ -49,6 +56,9 @@ enum class OriginY : std::uint8_t {
 struct Section {
     std::string magic;
     std::uint32_t sectionLen;
+
+    virtual bool read(std::istream &stream, bool revEndian) = 0;
+    virtual bool write(std::ostream &stream, bool revEndian) = 0;
 };
 
 /**
@@ -71,6 +81,8 @@ struct BasePane : virtual Section {
     OriginY parentOriginY;
     std::uint8_t alpha;
     bool influenceAlpha;
+    std::weak_ptr<BasePane> parent;
+    std::vector<std::shared_ptr<BasePane>> children;
 };
 
 /**
@@ -79,9 +91,7 @@ struct BasePane : virtual Section {
  */
 struct BaseHeader {
     unsigned version;
-    std::vector<std::string> textures;
-    std::vector<std::string> fonts;
-    std::unique_ptr<BasePane> rootPane;
+    std::shared_ptr<BasePane> rootPane;
 };
 
 struct LayoutInfo : virtual Section {
@@ -91,18 +101,20 @@ struct LayoutInfo : virtual Section {
     std::string name;
 };
 
+template<bool padding>
 struct Txl1 : virtual Section {
     static inline const std::string MAGIC = "txl1";
     std::vector<std::string> textures;
-    bool read(std::istream &stream, bool revEndian, bool padding);
-    bool write(std::ostream &stream, bool revEndian, bool padding);
+    bool read(std::istream &stream, bool revEndian);
+    bool write(std::ostream &stream, bool revEndian);
 };
 
+template<bool padding>
 struct Fnl1 : virtual Section {
     static inline const std::string MAGIC = "fnl1";
     std::vector<std::string> fonts;
-    bool read(std::istream &stream, bool revEndian, bool padding);
-    bool write(std::ostream &stream, bool revEndian, bool padding);
+    bool read(std::istream &stream, bool revEndian);
+    bool write(std::ostream &stream, bool revEndian);
 };
 
 struct TextureTransform {
