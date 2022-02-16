@@ -167,6 +167,60 @@ struct Pic1 : Pan1 {
     bool write(std::ostream &stream, bool revEndian);
 };
 
+struct Txt1 : Pan1 {
+    static inline const std::string MAGIC = "txt1";
+    std::uint16_t textLen;
+    std::uint16_t maxTextLen;
+    std::uint16_t materialIndex;
+    std::uint16_t fontIndex;
+    std::uint8_t textAlign;
+    LineAlign lineAlign;
+    float italicTilt;
+    color8 fontTopColor;
+    color8 fontBottomColor;
+    vec2<float> fontSize;
+    float charSpace;
+    float lineSpace;
+    vec2<float> shadowXY;
+    vec2<float> shadowXYSize;
+    color8 shadowForeColor;
+    color8 shadowBackColor;
+    float shadowItalic;
+    std::string textBoxName;
+    std::uint8_t flags;
+    bool read(std::istream &stream, bool revEndian);
+    bool write(std::ostream &stream, bool revEndian);
+};
+
+struct Bnd1 : Pan1 {
+    static inline const std::string MAGIC = "bnd1";
+    bool read(std::istream &stream, bool revEndian);
+    bool write(std::ostream &stream, bool revEndian);
+};
+
+struct Wnd1 : Pan1 {
+    static inline const std::string MAGIC = "wnd1";
+    WindowKind windowKind;
+    std::uint16_t stretchLeft;
+    std::uint16_t stretchRight;
+    std::uint16_t stretchTop;
+    std::uint16_t stretchBottom;
+    std::uint16_t frameElementLeft;
+    std::uint16_t frameElementRight;
+    std::uint16_t frameElementTop;
+    std::uint16_t frameElementBottom;
+    std::uint8_t flags;
+    WindowContent content;
+    std::vector<WindowFrame> frames;
+    bool read(std::istream &stream, bool revEndian);
+    bool write(std::ostream &stream, bool revEndian);
+};
+
+struct Grp1 : GroupPane {
+    bool read(std::istream &stream, bool revEndian);
+    bool write(std::ostream &stream, bool revEndian);
+};
+
 struct BrlytHeader : BaseHeader {
     static inline const std::string MAGIC = "RLYT";
     std::uint16_t bom;

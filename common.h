@@ -49,6 +49,42 @@ struct TexCoord {
     vec2<float> bottomRight;
 };
 
+enum class LineAlign : std::uint8_t {
+    Unspecified = 0,
+    Left = 1,
+    Center = 2,
+    Right = 3,
+};
+
+enum class WindowKind {
+    Around = 0,
+    Horizontal = 1,
+    HorizontalNoContent = 2
+};
+
+struct WindowContent {
+    color8 colorTopLeft;
+    color8 colorTopRight;
+    color8 colorBottomLeft;
+    color8 colorBottomRight;
+    std::uint16_t materialIndex;
+    std::vector<TexCoord> texCoords;
+};
+
+enum WindowFrameTexFlip : std::uint8_t {
+    None = 0,
+    FlipH = 1,
+    FlipV = 2,
+    Rotate90 = 3,
+    Rotate180 = 4,
+    Rotate270 = 5
+};
+
+struct WindowFrame {
+    std::uint16_t materialIndex;
+    WindowFrameTexFlip texFlip;
+};
+
 /**
  * @brief base class for sections in a layout file
  * 
@@ -59,6 +95,7 @@ struct Section {
 
     virtual bool read(std::istream &stream, bool revEndian) = 0;
     virtual bool write(std::ostream &stream, bool revEndian) = 0;
+    virtual ~Section();
 };
 
 /**
@@ -83,6 +120,15 @@ struct BasePane : virtual Section {
     bool influenceAlpha;
     std::weak_ptr<BasePane> parent;
     std::vector<std::shared_ptr<BasePane>> children;
+    virtual ~BasePane();
+};
+
+struct GroupPane : Section {
+    static inline const std::string MAGIC = "grp1";
+    std::string name;
+    std::vector<std::string> panes;
+    std::vector<std::shared_ptr<GroupPane>> children;
+    std::weak_ptr<GroupPane> parent;
 };
 
 /**
@@ -92,6 +138,7 @@ struct BasePane : virtual Section {
 struct BaseHeader {
     unsigned version;
     std::shared_ptr<BasePane> rootPane;
+    std::shared_ptr<GroupPane> rootGroup;
 };
 
 struct LayoutInfo : virtual Section {

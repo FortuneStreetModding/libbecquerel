@@ -1,6 +1,9 @@
 #include "common.h"
 #include <algorithm>
 
+Section::~Section() = default;
+BasePane::~BasePane() = default;
+
 template<bool padding>
 bool Txl1<padding>::read(std::istream &stream, bool revEndian) {
     auto count = readNumber<std::uint16_t>(stream, revEndian);
