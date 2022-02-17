@@ -4,6 +4,7 @@
 #include <string>
 #include <array>
 #include <vector>
+#include <unordered_map>
 
 #ifndef BECQUEREL_COMMON_H
 #define BECQUEREL_COMMON_H
@@ -139,6 +140,7 @@ struct BaseHeader {
     unsigned version;
     std::shared_ptr<BasePane> rootPane;
     std::shared_ptr<GroupPane> rootGroup;
+    std::unordered_map<std::string, std::shared_ptr<BasePane>> paneTable;
 };
 
 struct LayoutInfo : virtual Section {
@@ -297,11 +299,11 @@ struct BaseMaterial {
 template<class IO>
 class TemporarySeek {
     public:
-    TemporarySeek(IO &s, long seekPos, std::ios::seekdir seekDir = std::ios::beg);
+    TemporarySeek(IO &s, std::streampos seekPos, std::ios::seekdir seekDir = std::ios::beg);
     ~TemporarySeek();
     private:
     IO *stream;
-    long oldSeekPos;
+    std::streampos oldSeekPos;
 };
 
 std::string readFixedStr(std::istream &stream, int len);

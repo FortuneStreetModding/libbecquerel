@@ -37,7 +37,7 @@ bool Fnl1<padding>::read(std::istream &stream, bool revEndian) {
 }
 
 template<class IO>
-TemporarySeek<IO>::TemporarySeek(IO &s, long seekPos, std::ios::seekdir seekDir) {
+TemporarySeek<IO>::TemporarySeek(IO &s, std::streampos seekPos, std::ios::seekdir seekDir) {
     stream = &s;
     oldSeekPos = stream->tellg();
     stream->seekg(seekPos, seekDir);
