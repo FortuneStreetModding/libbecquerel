@@ -9,6 +9,8 @@
 #ifndef BECQUEREL_COMMON_H
 #define BECQUEREL_COMMON_H
 
+namespace bq {
+
 /**
  * @brief 2d vector class
  * 
@@ -91,9 +93,6 @@ struct WindowFrame {
  * 
  */
 struct Section {
-    std::string magic;
-    std::uint32_t sectionLen;
-
     virtual bool read(std::istream &stream, bool revEndian) = 0;
     virtual bool write(std::ostream &stream, bool revEndian) = 0;
     virtual ~Section();
@@ -310,5 +309,7 @@ std::string readFixedStr(std::istream &stream, int len);
 std::string readNullTerminatedStr(std::istream &stream);
 template<class T>
 T readNumber(std::istream &stream, bool reverseEndian);
+
+}
 
 #endif

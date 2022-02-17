@@ -1,6 +1,8 @@
 #include "common.h"
 #include <algorithm>
 
+namespace bq {
+
 Section::~Section() = default;
 BasePane::~BasePane() = default;
 
@@ -75,4 +77,6 @@ T readNumber(std::istream &stream, bool reverseEndian) {
         res = newRes;
     }
     return res;
+}
+
 }

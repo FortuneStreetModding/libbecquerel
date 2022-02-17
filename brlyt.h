@@ -4,6 +4,8 @@
 #ifndef BECQUEREL_BRLYT_H
 #define BECQUEREL_BRLYT_H
 
+namespace bq::brlyt {
+
 struct Lyt1 : LayoutInfo {
     static inline const std::string MAGIC = "lyt1";
     bool read(std::istream &stream, bool revEndian);
@@ -238,5 +240,7 @@ struct Brlyt {
     bool read(std::istream &stream);
     bool write(std::ostream &stream);
 };
+
+}
 
 #endif

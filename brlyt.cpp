@@ -1,5 +1,7 @@
 #include "brlyt.h"
 
+namespace bq::brlyt {
+
 bool Brlyt::read(std::istream &stream) {
     return header.read(stream);
 }
@@ -99,4 +101,6 @@ bool BrlytHeader::read(std::istream &stream) {
     }
 
     return true;
+}
+
 }
