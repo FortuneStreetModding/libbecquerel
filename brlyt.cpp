@@ -2,6 +2,67 @@
 
 namespace bq::brlyt {
 
+bool Lyt1::read(std::istream &stream, bool revEndian) {
+    drawFromCenter = readNumber<std::uint8_t>(stream, revEndian);
+    stream.seekg(3, std::ios::cur); // padding
+    width = readNumber<float>(stream, revEndian);
+    height = readNumber<float>(stream, revEndian);
+    return true;
+}
+
+bool TextureRef::read(std::istream &stream, bool revEndian) {
+    id = readNumber<std::uint16_t>(stream, revEndian);
+    wrapModeU = (WrapMode)readNumber<std::uint8_t>(stream, revEndian);
+    wrapModeV = (WrapMode)readNumber<std::uint8_t>(stream, revEndian);
+    filterModeMin = filterModeMax = FilterMode::Linear;
+}
+
+bool Material::read(std::istream &stream, bool revEndian) {
+    name = readFixedStr(stream, 0x14);
+    blackColor = toColor8(readColor16(stream, revEndian));
+    whiteColor = toColor8(readColor16(stream, revEndian));
+    colorRegister3 = toColor8(readColor16(stream, revEndian));
+    for (auto &tevColor: tevColors) {
+        tevColor = readColor8(stream, revEndian);
+    }
+    flags = readNumber<std::uint32_t>(stream, revEndian);
+    textureMaps.resize(texCount);
+    for (auto &textureMap: textureMaps) {
+        textureMap.read(stream, revEndian);
+    }
+    texTransforms.resize(mtxCount);
+    for (auto &texTransform: texTransforms) {
+        texTransform.read(stream, revEndian);
+    }
+    texCoordGens.resize(texCoordGenCount);
+    for (auto &texCoordGen: texCoordGens) {
+        texCoordGen.read(stream, revEndian);
+    }
+    if (hasChannelControl) {
+        chanCtrl.read(stream, revEndian);
+    }
+    
+    // TODO add more stuff
+    return true;
+}
+
+bool Mat1::read(std::istream &stream, bool revEndian) {
+    auto pos = stream.tellg();
+    auto numMats = readNumber<std::uint16_t>(stream, revEndian);
+    stream.seekg(2, std::ios::cur); // padding
+    for (int i=0; i<numMats; ++i) {
+        auto off = readNumber<std::uint32_t>(stream, revEndian);
+        {
+            TemporarySeek ts(stream, pos + std::streamoff(off - 8));
+            materials.emplace_back();
+            if (!materials.back().read(stream, revEndian)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 bool Brlyt::read(std::istream &stream) {
     return header.read(stream);
 }

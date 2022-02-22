@@ -10,12 +10,12 @@ template<bool padding>
 bool Txl1<padding>::read(std::istream &stream, bool revEndian) {
     auto count = readNumber<std::uint16_t>(stream, revEndian);
     stream.seekg(2, std::ios::cur); // padding
-    int pos = stream.tellg();
+    auto pos = stream.tellg();
     for (int i=0; i<count; ++i) {
         auto off = readNumber<std::uint32_t>(stream, revEndian);
         if (padding) stream.seekg(4, std::ios::cur);
         {
-            TemporarySeek ts(stream, pos + off);
+            TemporarySeek ts(stream, pos + std::streamoff(off));
             textures.push_back(readNullTerminatedStr(stream));
         }
     }
@@ -26,12 +26,12 @@ template<bool padding>
 bool Fnl1<padding>::read(std::istream &stream, bool revEndian) {
     auto count = readNumber<std::uint16_t>(stream, revEndian);
     stream.seekg(2, std::ios::cur); // padding
-    int pos = stream.tellg();
+    auto pos = stream.tellg();
     for (int i=0; i<count; ++i) {
         auto off = readNumber<std::uint32_t>(stream, revEndian);
         if (padding) stream.seekg(4, std::ios::cur);
         {
-            TemporarySeek ts(stream, pos + off);
+            TemporarySeek ts(stream, pos + std::streamoff(off));
             fonts.push_back(readNullTerminatedStr(stream));
         }
     }
@@ -39,15 +39,14 @@ bool Fnl1<padding>::read(std::istream &stream, bool revEndian) {
 }
 
 template<class IO>
-TemporarySeek<IO>::TemporarySeek(IO &s, std::streampos seekPos, std::ios::seekdir seekDir) {
-    stream = &s;
-    oldSeekPos = stream->tellg();
-    stream->seekg(seekPos, seekDir);
+TemporarySeek<IO>::TemporarySeek(IO &s, std::streampos seekPos, std::ios::seekdir seekDir) : stream(s) {
+    oldSeekPos = stream.tellg();
+    stream.seekg(seekPos, seekDir);
 }
 
 template<class IO>
 TemporarySeek<IO>::~TemporarySeek() {
-    stream->seekg(oldSeekPos);
+    stream.seekg(oldSeekPos);
 }
 
 std::string readFixedStr(std::istream &stream, int len) {
@@ -65,18 +64,57 @@ std::string readNullTerminatedStr(std::istream &stream) {
 template<class T>
 T readNumber(std::istream &stream, bool reverseEndian) {
     T res;
-    stream.read(reinterpret_cast<char *>(&res), sizeof(T));
+    char *resPtr = reinterpret_cast<char *>(&res);
+    stream.read(resPtr, sizeof(T));
     if (reverseEndian) {
-        T newRes = T();
-        for (int i=0; i<sizeof(T)/2; ++i) {
-            int s0 = (i*8);
-            int s1 = ((sizeof(T)-i-1)*8);
-            newRes |= ((res >> s0) & 0xff) << s1;
-            newRes |= ((res >> s1) & 0xff) << s0;
-        }
-        res = newRes;
+        std::reverse(resPtr, resPtr + sizeof(T));
     }
     return res;
+}
+
+color8 readColor8(std::istream &stream, bool reverseEndian) {
+    color8 res;
+    for (int i=0; i<4; ++i) {
+        res[i] = readNumber<std::uint8_t>(stream, reverseEndian);
+    }
+    return res;
+}
+
+color16 readColor16(std::istream &stream, bool reverseEndian) {
+    color16 res;
+    for (int i=0; i<4; ++i) {
+        res[i] = readNumber<std::uint16_t>(stream, reverseEndian);
+    }
+    return res;
+}
+
+color8 toColor8(const color16 &color) {
+    color8 res;
+    std::copy(color.begin(), color.end(), res.begin());
+    return res;
+}
+
+color16 toColor16(const color8 &color) {
+    color16 res;
+    std::copy(color.begin(), color.end(), res.begin());
+    return res;
+}
+
+template<class T>
+BitField<T>::BitField(T &value, int bitStart, int numBits) 
+    : theValue(value), theBitStart(bitStart), theNumBits(numBits) {}
+
+template<class T>
+BitField<T>::operator T() const {
+    return (theValue >> theBitStart) & ((T(1) << theNumBits) - 1);
+}
+
+template<class T>
+BitField<T> &BitField<T>::operator=(T newBits) {
+    T mask = ((T(1) << theNumBits) - 1) << theBitStart;
+    theValue &= ~mask;
+    theValue |= (newBits << theBitStart);
+    return *this;
 }
 
 }

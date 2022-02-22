@@ -28,6 +28,7 @@ template<class T>
 struct vec3 { T x,y,z; };
 
 typedef std::array<std::uint8_t, 4> color8;
+typedef std::array<std::uint16_t, 4> color16;
 
 /**
  * @brief relative x-position of origin
@@ -169,6 +170,8 @@ struct TextureTransform {
     vec2<float> translate;
     float rotate;
     vec2<float> scale;
+    bool read(std::istream &stream, bool revEndian);
+    bool write(std::ostream &stream, bool revEndian);
 };
 
 struct BlendMode {
@@ -227,7 +230,7 @@ enum class FilterMode {
     Linear = 1
 };
 
-struct TextureRef {
+struct BaseTextureRef {
     std::uint16_t id;
     std::string name;
     WrapMode wrapModeU;
@@ -282,14 +285,17 @@ struct ProjectionTexGenParam {
     std::uint8_t flags;
 };
 
+template<class TexRefType>
 struct BaseMaterial {
+    std::vector<TextureTransform> texTransforms;
+    std::string name;
     color8 whiteColor;
     color8 blackColor;
     BlendMode blendMode;
     BlendMode blendModeLogic;
     AlphaCompare alphaCompare;
     bool alphaInterp;
-    std::vector<TextureRef> textureMaps;
+    std::vector<TexRefType> textureMaps;
     std::vector<TevStage> tevStages;
     std::vector<TexCoordGen> texCoordGens;
     std::vector<ProjectionTexGenParam> projTexGenParams;
@@ -301,7 +307,7 @@ class TemporarySeek {
     TemporarySeek(IO &s, std::streampos seekPos, std::ios::seekdir seekDir = std::ios::beg);
     ~TemporarySeek();
     private:
-    IO *stream;
+    IO &stream;
     std::streampos oldSeekPos;
 };
 
@@ -309,6 +315,20 @@ std::string readFixedStr(std::istream &stream, int len);
 std::string readNullTerminatedStr(std::istream &stream);
 template<class T>
 T readNumber(std::istream &stream, bool reverseEndian);
+color8 readColor8(std::istream &stream, bool reverseEndian);
+color16 readColor16(std::istream &stream, bool reverseEndian);
+color8 toColor8(const color16 &color);
+color16 toColor16(const color8 &color);
+template<class T>
+class BitField {
+    T &theValue;
+    int theBitStart;
+    int theNumBits;
+    public:
+    BitField(T &value, int bitStart, int numBits);
+    operator T() const;
+    BitField<T> &operator=(T newBits);
+};
 
 }
 
