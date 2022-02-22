@@ -2,22 +2,21 @@
 
 namespace bq::brlyt {
 
-bool Lyt1::read(std::istream &stream, bool revEndian) {
+void Lyt1::read(std::istream &stream, bool revEndian) {
     drawFromCenter = readNumber<std::uint8_t>(stream, revEndian);
     stream.seekg(3, std::ios::cur); // padding
     width = readNumber<float>(stream, revEndian);
     height = readNumber<float>(stream, revEndian);
-    return true;
 }
 
-bool TextureRef::read(std::istream &stream, bool revEndian) {
+void TextureRef::read(std::istream &stream, bool revEndian) {
     id = readNumber<std::uint16_t>(stream, revEndian);
     wrapModeU = (WrapMode)readNumber<std::uint8_t>(stream, revEndian);
     wrapModeV = (WrapMode)readNumber<std::uint8_t>(stream, revEndian);
     filterModeMin = filterModeMax = FilterMode::Linear;
 }
 
-bool Material::read(std::istream &stream, bool revEndian) {
+void Material::read(std::istream &stream, bool revEndian) {
     name = readFixedStr(stream, 0x14);
     blackColor = toColor8(readColor16(stream, revEndian));
     whiteColor = toColor8(readColor16(stream, revEndian));
@@ -41,12 +40,21 @@ bool Material::read(std::istream &stream, bool revEndian) {
     if (hasChannelControl) {
         chanCtrl.read(stream, revEndian);
     }
-    
+    if (hasMaterialColor) {
+        matColor = readColor8(stream, revEndian);
+    }
+    if (hasTevSwapTable) {
+        swapModeTable.read(stream, revEndian);
+    }
+    indirectTransforms.resize(indSrtCount);
+    for (auto &indTransform: indirectTransforms) {
+        indTransform.read(stream, revEndian);
+    }
+
     // TODO add more stuff
-    return true;
 }
 
-bool Mat1::read(std::istream &stream, bool revEndian) {
+void Mat1::read(std::istream &stream, bool revEndian) {
     auto pos = stream.tellg();
     auto numMats = readNumber<std::uint16_t>(stream, revEndian);
     stream.seekg(2, std::ios::cur); // padding
@@ -55,15 +63,12 @@ bool Mat1::read(std::istream &stream, bool revEndian) {
         {
             TemporarySeek ts(stream, pos + std::streamoff(off - 8));
             materials.emplace_back();
-            if (!materials.back().read(stream, revEndian)) {
-                return false;
-            }
+            materials.back().read(stream, revEndian);
         }
     }
-    return true;
 }
 
-bool Brlyt::read(std::istream &stream) {
+void Brlyt::read(std::istream &stream) {
     return header.read(stream);
 }
 
@@ -75,11 +80,11 @@ static void setPane(std::shared_ptr<T> pane, std::shared_ptr<T> parentPane) {
     }
 }
 
-bool BrlytHeader::read(std::istream &stream) {
+void BrlytHeader::read(std::istream &stream) {
     auto magic = readFixedStr(stream, 4);
     bool reverseEndian;
     if (magic != MAGIC) {
-        return false;
+        // TODO throw exception here
     }
     bom = readNumber<std::uint16_t>(stream, false);
     reverseEndian = (bom != 0xfeff);
@@ -160,8 +165,6 @@ bool BrlytHeader::read(std::istream &stream) {
 
         stream.seekg(pos + std::streamoff(sectionSize));
     }
-
-    return true;
 }
 
 }

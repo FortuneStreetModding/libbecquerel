@@ -8,8 +8,8 @@ namespace bq::brlyt {
 
 struct Lyt1 : LayoutInfo {
     static inline const std::string MAGIC = "lyt1";
-    bool read(std::istream &stream, bool revEndian);
-    bool write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
 };
 
 enum class TexCoordGenTypes {
@@ -100,8 +100,8 @@ struct TexCoordGenEntry {
     TexCoordGenSource source;
     TexCoordGenMatrixSource matrixSource;
     std::uint8_t unknown;
-    bool read(std::istream &stream, bool revEndian);
-    bool write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
 };
 
 struct ChanCtrl {
@@ -109,8 +109,8 @@ struct ChanCtrl {
     std::uint8_t alphaMatSource;
     std::uint8_t unknown1;
     std::uint8_t unknown2;
-    bool read(std::istream &stream, bool revEndian);
-    bool write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
 };
 
 enum SwapChannel {
@@ -126,6 +126,8 @@ struct SwapMode {
 
 struct TevSwapModeTable {
     SwapMode swapModes[4];
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
 };
 
 struct IndirectStage {
@@ -136,8 +138,8 @@ struct IndirectStage {
 };
 
 struct TextureRef : BaseTextureRef {
-    bool read(std::istream &stream, bool revEndian);
-    bool write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
 };
 
 struct Material : BaseMaterial<TextureRef> {
@@ -156,27 +158,27 @@ struct Material : BaseMaterial<TextureRef> {
     BitField<std::uint32_t> hasAlphaCompare = BitField(flags, 8, 1);
     BitField<std::uint32_t> tevStagesCount = BitField(flags, 9, 5);
     BitField<std::uint32_t> indTexOrderCount = BitField(flags, 14, 3);
-    BitField<std::uint32_t> indTexOrderCount = BitField(flags, 17, 2);
+    BitField<std::uint32_t> indSrtCount = BitField(flags, 17, 2);
     BitField<std::uint32_t> hasTevSwapTable = BitField(flags, 19, 1);
     BitField<std::uint32_t> texCoordGenCount = BitField(flags, 20, 4);
     BitField<std::uint32_t> mtxCount = BitField(flags, 24, 4);
     BitField<std::uint32_t> texCount = BitField(flags, 28, 4);
-    bool read(std::istream &stream, bool revEndian);
-    bool write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
 };
 
 struct Mat1 {
     static inline const std::string MAGIC = "mat1";
     std::vector<Material> materials;
-    bool read(std::istream &stream, bool revEndian);
-    bool write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
 };
 
 struct Pan1 : BasePane {
     static inline const std::string MAGIC = "pan1";
     std::uint8_t flags;
-    bool read(std::istream &stream, bool revEndian);
-    bool write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
 };
 
 struct Pic1 : Pan1 {
@@ -187,8 +189,8 @@ struct Pic1 : Pan1 {
     color8 colorBottomLeft;
     color8 colorBottomRight;
     std::uint16_t materialIndex;
-    bool read(std::istream &stream, bool revEndian);
-    bool write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
 };
 
 struct Txt1 : Pan1 {
@@ -212,14 +214,14 @@ struct Txt1 : Pan1 {
     float shadowItalic;
     std::string textBoxName;
     std::uint8_t flags;
-    bool read(std::istream &stream, bool revEndian);
-    bool write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
 };
 
 struct Bnd1 : Pan1 {
     static inline const std::string MAGIC = "bnd1";
-    bool read(std::istream &stream, bool revEndian);
-    bool write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
 };
 
 struct Wnd1 : Pan1 {
@@ -236,13 +238,13 @@ struct Wnd1 : Pan1 {
     std::uint8_t flags;
     WindowContent content;
     std::vector<WindowFrame> frames;
-    bool read(std::istream &stream, bool revEndian);
-    bool write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
 };
 
 struct Grp1 : GroupPane {
-    bool read(std::istream &stream, bool revEndian);
-    bool write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
 };
 
 struct BrlytHeader : BaseHeader {
@@ -253,14 +255,14 @@ struct BrlytHeader : BaseHeader {
     Txl1<true> txl1;
     Mat1 mat1;
     Fnl1<true> fnl1;
-    bool read(std::istream &stream);
-    bool write(std::ostream &stream);
+    void read(std::istream &stream);
+    void write(std::ostream &stream);
 };
 
 struct Brlyt {
     BrlytHeader header;
-    bool read(std::istream &stream);
-    bool write(std::ostream &stream);
+    void read(std::istream &stream);
+    void write(std::ostream &stream);
 };
 
 }

@@ -7,7 +7,7 @@ Section::~Section() = default;
 BasePane::~BasePane() = default;
 
 template<bool padding>
-bool Txl1<padding>::read(std::istream &stream, bool revEndian) {
+void Txl1<padding>::read(std::istream &stream, bool revEndian) {
     auto count = readNumber<std::uint16_t>(stream, revEndian);
     stream.seekg(2, std::ios::cur); // padding
     auto pos = stream.tellg();
@@ -23,7 +23,7 @@ bool Txl1<padding>::read(std::istream &stream, bool revEndian) {
 }
 
 template<bool padding>
-bool Fnl1<padding>::read(std::istream &stream, bool revEndian) {
+void Fnl1<padding>::read(std::istream &stream, bool revEndian) {
     auto count = readNumber<std::uint16_t>(stream, revEndian);
     stream.seekg(2, std::ios::cur); // padding
     auto pos = stream.tellg();

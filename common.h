@@ -94,8 +94,8 @@ struct WindowFrame {
  * 
  */
 struct Section {
-    virtual bool read(std::istream &stream, bool revEndian) = 0;
-    virtual bool write(std::ostream &stream, bool revEndian) = 0;
+    virtual void read(std::istream &stream, bool revEndian) = 0;
+    virtual void write(std::ostream &stream, bool revEndian) = 0;
     virtual ~Section();
 };
 
@@ -154,24 +154,24 @@ template<bool padding>
 struct Txl1 : virtual Section {
     static inline const std::string MAGIC = "txl1";
     std::vector<std::string> textures;
-    bool read(std::istream &stream, bool revEndian);
-    bool write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
 };
 
 template<bool padding>
 struct Fnl1 : virtual Section {
     static inline const std::string MAGIC = "fnl1";
     std::vector<std::string> fonts;
-    bool read(std::istream &stream, bool revEndian);
-    bool write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
 };
 
 struct TextureTransform {
     vec2<float> translate;
     float rotate;
     vec2<float> scale;
-    bool read(std::istream &stream, bool revEndian);
-    bool write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
 };
 
 struct BlendMode {
