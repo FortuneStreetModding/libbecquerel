@@ -77,9 +77,11 @@ void Material::read(std::istream &stream, bool revEndian) {
         tevStage.read(stream, revEndian);
     }
     if (hasAlphaCompare) {
-        
+        alphaCompare.read(stream, revEndian);
     }
-    // TODO add more stuff
+    if (hasBlendMode) {
+        blendMode.read(stream, revEndian);
+    }
 }
 
 void Mat1::read(std::istream &stream, bool revEndian) {
@@ -94,6 +96,21 @@ void Mat1::read(std::istream &stream, bool revEndian) {
             materials.back().read(stream, revEndian);
         }
     }
+}
+
+void Pan1::read(std::istream &stream, bool revEndian) {
+    flags = readNumber<std::uint8_t>(stream, revEndian);
+    auto origin = readNumber<std::uint8_t>(stream, revEndian);
+    alpha = readNumber<std::uint8_t>(stream, revEndian);
+    paneMagFlags = readNumber<std::uint8_t>(stream, revEndian);
+    name = readFixedStr(stream, 0x10);
+    userDataInfo = readFixedStr(stream, 0x8);
+    translate.read(stream, revEndian);
+    rotate.read(stream, revEndian);
+    scale.read(stream, revEndian);
+    width = readNumber<float>(stream, revEndian);
+    height = readNumber<float>(stream, revEndian);
+    // TODO add origin stuff
 }
 
 void Brlyt::read(std::istream &stream) {

@@ -17,7 +17,11 @@ namespace bq {
  * @tparam T the component type
  */
 template<class T>
-struct vec2 { T x,y; };
+struct vec2 {
+    T x,y;
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
+};
 
 /**
  * @brief 3d vector class
@@ -25,7 +29,11 @@ struct vec2 { T x,y; };
  * @tparam T the component type
  */
 template<class T>
-struct vec3 { T x,y,z; };
+struct vec3 {
+    T x,y,z;
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
+};
 
 typedef std::array<std::uint8_t, 4> color8;
 typedef std::array<std::uint16_t, 4> color16;
@@ -201,6 +209,9 @@ struct BlendMode {
     BlendFactor srcFactor;
     BlendFactor destFactor;
     Op logicOp;
+
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
 };
 
 enum class AlphaFunction : std::uint8_t {

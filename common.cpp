@@ -6,6 +6,19 @@ namespace bq {
 Section::~Section() = default;
 BasePane::~BasePane() = default;
 
+template<class T>
+void vec2<T>::read(std::istream &stream, bool revEndian) {
+    x = readNumber<T>(stream, revEndian);
+    y = readNumber<T>(stream, revEndian);
+}
+
+template<class T>
+void vec3<T>::read(std::istream &stream, bool revEndian) {
+    x = readNumber<T>(stream, revEndian);
+    y = readNumber<T>(stream, revEndian);
+    z = readNumber<T>(stream, revEndian);
+}
+
 template<bool padding>
 void Txl1<padding>::read(std::istream &stream, bool revEndian) {
     auto count = readNumber<std::uint16_t>(stream, revEndian);
@@ -36,6 +49,13 @@ void Fnl1<padding>::read(std::istream &stream, bool revEndian) {
         }
     }
     return true;
+}
+
+void BlendMode::read(std::istream &stream, bool revEndian) {
+    blendOp = (Op)readNumber<std::uint8_t>(stream, revEndian);
+    srcFactor = (BlendFactor)readNumber<std::uint8_t>(stream, revEndian);
+    destFactor = (BlendFactor)readNumber<std::uint8_t>(stream, revEndian);
+    logicOp = (Op)readNumber<std::uint8_t>(stream, revEndian);
 }
 
 template<class IO>
