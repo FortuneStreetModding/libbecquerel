@@ -135,6 +135,8 @@ struct IndirectStage {
     std::uint8_t texMap;
     std::uint8_t scaleS;
     std::uint8_t scaleT;
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
 };
 
 struct TextureRef : BaseTextureRef {
@@ -142,7 +144,27 @@ struct TextureRef : BaseTextureRef {
     void write(std::ostream &stream, bool revEndian);
 };
 
-struct Material : BaseMaterial<TextureRef> {
+struct TevStage : BaseTevStage {
+    std::uint8_t texCoord;
+    std::uint8_t color;
+    // TODO add bit fields for the flags
+    std::uint16_t flag1;
+    std::array<std::uint8_t, 12> flags;
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
+};
+
+struct AlphaCompare : BaseAlphaCompare {
+    AlphaFunction comp0;
+    AlphaFunction comp1;
+    AlphaOp op;
+    std::uint8_t ref0;
+    std::uint8_t ref1;
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
+};
+
+struct Material : BaseMaterial<TextureRef, TevStage, AlphaCompare> {
     color8 colorRegister3;
     color8 matColor;
     std::array<color8, 4> tevColors;

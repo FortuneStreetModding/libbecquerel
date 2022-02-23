@@ -16,6 +16,24 @@ void TextureRef::read(std::istream &stream, bool revEndian) {
     filterModeMin = filterModeMax = FilterMode::Linear;
 }
 
+void TevStage::read(std::istream &stream, bool revEndian) {
+    texCoord = readNumber<std::uint8_t>(stream, revEndian);
+    color = readNumber<std::uint8_t>(stream, revEndian);
+    flag1 = readNumber<std::uint16_t>(stream, revEndian);
+    for (auto &flag: flags) {
+        flag = readNumber<std::uint8_t>(stream, revEndian);
+    }
+}
+
+void AlphaCompare::read(std::istream &stream, bool revEndian) {
+    auto c = readNumber<std::uint8_t>(stream, revEndian);
+    comp0 = AlphaFunction(c & 0x7);
+    comp1 = AlphaFunction((c >> 4) & 0x7);
+    op = (AlphaOp)readNumber<std::uint8_t>(stream, revEndian);
+    ref0 = readNumber<std::uint8_t>(stream, revEndian);
+    ref1 = readNumber<std::uint8_t>(stream, revEndian);
+}
+
 void Material::read(std::istream &stream, bool revEndian) {
     name = readFixedStr(stream, 0x14);
     blackColor = toColor8(readColor16(stream, revEndian));
@@ -50,7 +68,17 @@ void Material::read(std::istream &stream, bool revEndian) {
     for (auto &indTransform: indirectTransforms) {
         indTransform.read(stream, revEndian);
     }
-
+    indirectStages.resize(indTexOrderCount);
+    for (auto &indStage: indirectStages) {
+        indStage.read(stream, revEndian);
+    }
+    tevStages.resize(tevStagesCount);
+    for (auto &tevStage: tevStages) {
+        tevStage.read(stream, revEndian);
+    }
+    if (hasAlphaCompare) {
+        
+    }
     // TODO add more stuff
 }
 

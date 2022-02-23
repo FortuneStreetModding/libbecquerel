@@ -214,7 +214,14 @@ enum class AlphaFunction : std::uint8_t {
     Always = 7,
 };
 
-struct AlphaCompare {
+enum class AlphaOp : std::uint8_t {
+    And = 0,
+    Or = 1,
+    Xor = 2,
+    Nor = 3,
+};
+
+struct BaseAlphaCompare {
     AlphaFunction compareMode;
     float value;
 };
@@ -254,7 +261,7 @@ enum class TevMode : std::uint8_t {
     EachIndirect,
 };
 
-struct TevStage {
+struct BaseTevStage {
     TevMode colorMode;
     TevMode alphaMode;
 };
@@ -285,7 +292,7 @@ struct ProjectionTexGenParam {
     std::uint8_t flags;
 };
 
-template<class TexRefType>
+template<class TexRefType, class TevStageType, class AlphaCompareType>
 struct BaseMaterial {
     std::vector<TextureTransform> texTransforms;
     std::string name;
@@ -293,10 +300,10 @@ struct BaseMaterial {
     color8 blackColor;
     BlendMode blendMode;
     BlendMode blendModeLogic;
-    AlphaCompare alphaCompare;
+    AlphaCompareType alphaCompare;
     bool alphaInterp;
     std::vector<TexRefType> textureMaps;
-    std::vector<TevStage> tevStages;
+    std::vector<TevStageType> tevStages;
     std::vector<TexCoordGen> texCoordGens;
     std::vector<ProjectionTexGenParam> projTexGenParams;
 };
