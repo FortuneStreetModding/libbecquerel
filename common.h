@@ -362,6 +362,7 @@ class TemporarySeek {
     ~TemporarySeek() {
         stream.seekg(oldSeekPos);
     };
+    TemporarySeek<IO> &operator=(const TemporarySeek<IO> &other) = delete;
     private:
     IO &stream;
     std::streampos oldSeekPos;
@@ -383,6 +384,7 @@ class BitField {
         theValue |= (newBits << theBitStart);
         return *this;
     };
+    BitField<T> &operator=(const BitField<T> &other) = delete;
 };
 
 }

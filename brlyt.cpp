@@ -378,9 +378,9 @@ void BrlytHeader::read(std::istream &stream) {
             }
         } else if (sectionHeader == "gre1") {
             curGroupPane = parentGroupPane;
-            parentGroupPane = std::shared_ptr<GroupPane>(curGroupPane->parent);
+            parentGroupPane = curGroupPane->parent.lock();
         } else if (sectionHeader == "usd1") {
-            // TODO add support for usd1
+            // TODO add support for usd1?
         }
 
         if (addPane) {
