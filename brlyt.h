@@ -198,6 +198,8 @@ struct Mat1 {
 
 struct Pan1 : BasePane {
     static inline const std::string MAGIC = "pan1";
+    static inline const std::array<OriginX, 3> ORIGIN_X_MAP = {OriginX::LEFT, OriginX::CENTER, OriginX::RIGHT};
+    static inline const std::array<OriginY, 3> ORIGIN_Y_MAP = {OriginY::TOP, OriginY::CENTER, OriginY::BOTTOM};
     std::uint8_t flags;
     void read(std::istream &stream, bool revEndian);
     void write(std::ostream &stream, bool revEndian);

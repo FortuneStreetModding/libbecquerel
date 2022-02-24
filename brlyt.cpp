@@ -110,7 +110,8 @@ void Pan1::read(std::istream &stream, bool revEndian) {
     scale.read(stream, revEndian);
     width = readNumber<float>(stream, revEndian);
     height = readNumber<float>(stream, revEndian);
-    // TODO add origin stuff
+    originX = ORIGIN_X_MAP[origin % 3];
+    originY = ORIGIN_Y_MAP[origin / 3];
 }
 
 void Brlyt::read(std::istream &stream) {
