@@ -114,6 +114,58 @@ void Pan1::read(std::istream &stream, bool revEndian) {
     originY = ORIGIN_Y_MAP[origin / 3];
 }
 
+void Txt1::read(std::istream &stream, bool revEndian) {
+    Pan1::read(stream, revEndian);
+    textLen = readNumber<std::uint16_t>(stream, revEndian);
+    maxTextLen = readNumber<std::uint16_t>(stream, revEndian);
+    materialIndex = readNumber<std::uint16_t>(stream, revEndian);
+    fontIndex = readNumber<std::uint16_t>(stream, revEndian);
+    textAlign = readNumber<std::uint8_t>(stream, revEndian);
+    lineAlign = (LineAlign)readNumber<std::uint8_t>(stream, revEndian);
+    flagsTxt1 = readNumber<std::uint8_t>(stream, revEndian);
+    stream.seekg(1, std::ios::cur);
+    auto textOffset = readNumber<std::uint32_t>(stream, revEndian);
+    fontTopColor = readColor8(stream, revEndian);
+    fontBottomColor = readColor8(stream, revEndian);
+    fontSize.read(stream, revEndian);
+    charSpace = readNumber<float>(stream, revEndian);
+    lineSpace = readNumber<float>(stream, revEndian);
+    text = readNullTerminatedStr(stream);
+}
+
+void Bnd1::read(std::istream &stream, bool revEndian) {
+    Pan1::read(stream, revEndian);
+}
+
+void Wnd1::read(std::istream &stream, bool revEndian) {
+    Pan1::read(stream, revEndian);
+    auto pos = stream.tellg() - std::streamoff(0x4c);
+    stretchLeft = readNumber<std::uint16_t>(stream, revEndian);
+    stretchRight = readNumber<std::uint16_t>(stream, revEndian);
+    stretchTop = readNumber<std::uint16_t>(stream, revEndian);
+    stretchBottom = readNumber<std::uint16_t>(stream, revEndian);
+    frameElementLeft = readNumber<std::uint16_t>(stream, revEndian);
+    frameElementRight = readNumber<std::uint16_t>(stream, revEndian);
+    frameElementTop = readNumber<std::uint16_t>(stream, revEndian);
+    frameElementBottom = readNumber<std::uint16_t>(stream, revEndian);
+    frameCount = readNumber<std::uint8_t>(stream, revEndian);
+    flagsWnd1 = readNumber<std::uint8_t>(stream, revEndian);
+    stream.seekg(2, std::ios::cur);
+    auto contentOffset = readNumber<std::uint32_t>(stream, revEndian);
+    auto frameOffsetTbl = readNumber<std::uint32_t>(stream, revEndian);
+    stream.seekg(pos + std::streamoff(contentOffset));
+    content.read(stream, revEndian);
+    stream.seekg(pos + std::streamoff(frameOffsetTbl));
+    frames.resize(frameCount);
+    for (auto &frame: frames) {
+        auto off = readNumber<std::uint32_t>(stream, revEndian);
+        {
+            TemporarySeek ts(stream, pos + std::streamoff(off));
+            frame.read(stream, revEndian);
+        }
+    }
+}
+
 void Brlyt::read(std::istream &stream) {
     return header.read(stream);
 }
@@ -146,6 +198,7 @@ void BrlytHeader::read(std::istream &stream) {
 
         auto sectionHeader = readFixedStr(stream, 4);
         auto sectionSize = readNumber<std::uint32_t>(stream, reverseEndian);
+        bool addPane = false;
         std::shared_ptr<BasePane> curPane, parentPane;
         std::shared_ptr<GroupPane> curGroupPane, parentGroupPane;
         if (sectionHeader == Lyt1::MAGIC) {
@@ -158,29 +211,19 @@ void BrlytHeader::read(std::istream &stream) {
             mat1.read(stream, reverseEndian);
         } else if (sectionHeader == Pan1::MAGIC) {
             curPane = std::make_shared<Pan1>();
-            curPane->read(stream, reverseEndian);
-            paneTable.emplace(curPane->name, curPane);
-            setPane(curPane, parentPane);
+            addPane = true;
         } else if (sectionHeader == Pic1::MAGIC) {
             curPane = std::make_shared<Pic1>();
-            curPane->read(stream, reverseEndian);
-            paneTable.emplace(curPane->name, curPane);
-            setPane(curPane, parentPane);
+            addPane = true;
         } else if (sectionHeader == Txt1::MAGIC) {
             curPane = std::make_shared<Txt1>();
-            curPane->read(stream, reverseEndian);
-            paneTable.emplace(curPane->name, curPane);
-            setPane(curPane, parentPane);
+            addPane = true;
         } else if (sectionHeader == Bnd1::MAGIC) {
             curPane = std::make_shared<Bnd1>();
-            curPane->read(stream, reverseEndian);
-            paneTable.emplace(curPane->name, curPane);
-            setPane(curPane, parentPane);
+            addPane = true;
         } else if (sectionHeader == Wnd1::MAGIC) {
             curPane = std::make_shared<Wnd1>();
-            curPane->read(stream, reverseEndian);
-            paneTable.emplace(curPane->name, curPane);
-            setPane(curPane, parentPane);
+            addPane = true;
         } else if (sectionHeader == "pas1") {
             if (curPane) {
                 parentPane = curPane;
@@ -199,6 +242,14 @@ void BrlytHeader::read(std::istream &stream) {
         } else if (sectionHeader == "gre1") {
             curGroupPane = parentGroupPane;
             parentGroupPane = std::shared_ptr<GroupPane>(curGroupPane->parent);
+        } else if (sectionHeader == "usd1") {
+            // TODO add support for usd1
+        }
+
+        if (addPane) {
+            curPane->read(stream, reverseEndian);
+            paneTable.emplace(curPane->name, curPane);
+            setPane(curPane, parentPane);
         }
 
         if (!rootPane && sectionHeader == Pan1::MAGIC) {

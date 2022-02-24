@@ -4,7 +4,6 @@
 namespace bq {
 
 Section::~Section() = default;
-BasePane::~BasePane() = default;
 
 template<class T>
 void vec2<T>::read(std::istream &stream, bool revEndian) {
@@ -17,6 +16,23 @@ void vec3<T>::read(std::istream &stream, bool revEndian) {
     x = readNumber<T>(stream, revEndian);
     y = readNumber<T>(stream, revEndian);
     z = readNumber<T>(stream, revEndian);
+}
+
+void WindowContent::read(std::istream &stream, bool revEndian) {
+    colorTopLeft = readColor8(stream, revEndian);
+    colorTopRight = readColor8(stream, revEndian);
+    colorBottomLeft = readColor8(stream, revEndian);
+    colorBottomRight = readColor8(stream, revEndian);
+    materialIndex = readNumber<std::uint16_t>(stream, revEndian);
+    auto uvCount = readNumber<std::uint8_t>(stream, revEndian);
+    stream.seekg(1, std::ios::cur);
+    texCoords.resize(uvCount);
+    for (auto &texCoord: texCoords) {
+        texCoord.topLeft.read(stream, revEndian);
+        texCoord.topRight.read(stream, revEndian);
+        texCoord.bottomLeft.read(stream, revEndian);
+        texCoord.bottomRight.read(stream, revEndian);
+    }
 }
 
 template<bool padding>
@@ -70,9 +86,9 @@ TemporarySeek<IO>::~TemporarySeek() {
 }
 
 std::string readFixedStr(std::istream &stream, int len) {
-    std::unique_ptr<char> buf(new char[len]);
-    stream.read(buf.get(), len);
-    return std::string(buf.get(), len);
+    std::string res(len, '\0');
+    stream.read(res.data(), len);
+    return res;
 }
 
 std::string readNullTerminatedStr(std::istream &stream) {

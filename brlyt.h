@@ -231,13 +231,8 @@ struct Txt1 : Pan1 {
     vec2<float> fontSize;
     float charSpace;
     float lineSpace;
-    vec2<float> shadowXY;
-    vec2<float> shadowXYSize;
-    color8 shadowForeColor;
-    color8 shadowBackColor;
-    float shadowItalic;
-    std::string textBoxName;
-    std::uint8_t flags;
+    std::string text;
+    std::uint8_t flagsTxt1;
     void read(std::istream &stream, bool revEndian);
     void write(std::ostream &stream, bool revEndian);
 };
@@ -250,7 +245,6 @@ struct Bnd1 : Pan1 {
 
 struct Wnd1 : Pan1 {
     static inline const std::string MAGIC = "wnd1";
-    WindowKind windowKind;
     std::uint16_t stretchLeft;
     std::uint16_t stretchRight;
     std::uint16_t stretchTop;
@@ -259,7 +253,8 @@ struct Wnd1 : Pan1 {
     std::uint16_t frameElementRight;
     std::uint16_t frameElementTop;
     std::uint16_t frameElementBottom;
-    std::uint8_t flags;
+    std::uint8_t frameCount;
+    std::uint8_t flagsWnd1;
     WindowContent content;
     std::vector<WindowFrame> frames;
     void read(std::istream &stream, bool revEndian);

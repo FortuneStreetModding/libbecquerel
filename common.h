@@ -9,6 +9,8 @@
 #ifndef BECQUEREL_COMMON_H
 #define BECQUEREL_COMMON_H
 
+static_assert(sizeof(float) == 4, "Size of single precision float must be 4 bytes");
+
 namespace bq {
 
 /**
@@ -81,6 +83,8 @@ struct WindowContent {
     color8 colorBottomRight;
     std::uint16_t materialIndex;
     std::vector<TexCoord> texCoords;
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
 };
 
 enum WindowFrameTexFlip : std::uint8_t {
@@ -95,6 +99,8 @@ enum WindowFrameTexFlip : std::uint8_t {
 struct WindowFrame {
     std::uint16_t materialIndex;
     WindowFrameTexFlip texFlip;
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
 };
 
 /**
@@ -129,7 +135,6 @@ struct BasePane : virtual Section {
     bool influenceAlpha;
     std::weak_ptr<BasePane> parent;
     std::vector<std::shared_ptr<BasePane>> children;
-    virtual ~BasePane();
 };
 
 struct GroupPane : Section {
