@@ -9,11 +9,74 @@ void Lyt1::read(std::istream &stream, bool revEndian) {
     height = readNumber<float>(stream, revEndian);
 }
 
+void Lyt1::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
+}
+
+void TexCoordGenEntry::read(std::istream &stream, bool revEndian) {
+    type = (TexCoordGenTypes)readNumber<std::uint8_t>(stream, revEndian);
+    source = (TexCoordGenSource)readNumber<std::uint8_t>(stream, revEndian);
+    matrixSource = (TexCoordGenMatrixSource)readNumber<std::uint8_t>(stream, revEndian);
+    unknown = readNumber<std::uint8_t>(stream, revEndian);
+}
+
+void TexCoordGenEntry::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
+}
+
+void ChanCtrl::read(std::istream &stream, bool revEndian) {
+    colorMatSource = readNumber<std::uint8_t>(stream, revEndian);
+    alphaMatSource = readNumber<std::uint8_t>(stream, revEndian);
+    unknown1 = readNumber<std::uint8_t>(stream, revEndian);
+    unknown2 = readNumber<std::uint8_t>(stream, revEndian);
+}
+
+void ChanCtrl::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
+}
+
+void SwapMode::read(std::istream &stream, bool revEndian) {
+    auto val = readNumber<std::uint8_t>(stream, revEndian);
+    r = SwapChannel(val & 0x3);
+    g = SwapChannel((val >> 2) & 0x3);
+    b = SwapChannel((val >> 4) & 0x3);
+    a = SwapChannel((val >> 6) & 0x3);
+}
+
+void SwapMode::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
+}
+
+void TevSwapModeTable::read(std::istream &stream, bool revEndian) {
+    for (auto &swapMode: swapModes) {
+        swapMode.read(stream, revEndian);
+    }
+}
+
+void TevSwapModeTable::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
+}
+
+void IndirectStage::read(std::istream &stream, bool revEndian) {
+    texCoord = readNumber<std::uint8_t>(stream, revEndian);
+    texMap = readNumber<std::uint8_t>(stream, revEndian);
+    scaleS = readNumber<std::uint8_t>(stream, revEndian);
+    scaleT = readNumber<std::uint8_t>(stream, revEndian);
+}
+
+void IndirectStage::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
+}
+
 void TextureRef::read(std::istream &stream, bool revEndian) {
     id = readNumber<std::uint16_t>(stream, revEndian);
     wrapModeU = (WrapMode)readNumber<std::uint8_t>(stream, revEndian);
     wrapModeV = (WrapMode)readNumber<std::uint8_t>(stream, revEndian);
     filterModeMin = filterModeMax = FilterMode::Linear;
+}
+
+void TextureRef::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
 }
 
 void TevStage::read(std::istream &stream, bool revEndian) {
@@ -25,6 +88,10 @@ void TevStage::read(std::istream &stream, bool revEndian) {
     }
 }
 
+void TevStage::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
+}
+
 void AlphaCompare::read(std::istream &stream, bool revEndian) {
     auto c = readNumber<std::uint8_t>(stream, revEndian);
     comp0 = AlphaFunction(c & 0x7);
@@ -32,6 +99,10 @@ void AlphaCompare::read(std::istream &stream, bool revEndian) {
     op = (AlphaOp)readNumber<std::uint8_t>(stream, revEndian);
     ref0 = readNumber<std::uint8_t>(stream, revEndian);
     ref1 = readNumber<std::uint8_t>(stream, revEndian);
+}
+
+void AlphaCompare::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
 }
 
 void Material::read(std::istream &stream, bool revEndian) {
@@ -84,6 +155,10 @@ void Material::read(std::istream &stream, bool revEndian) {
     }
 }
 
+void Material::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
+}
+
 void Mat1::read(std::istream &stream, bool revEndian) {
     auto pos = stream.tellg();
     auto numMats = readNumber<std::uint16_t>(stream, revEndian);
@@ -96,6 +171,10 @@ void Mat1::read(std::istream &stream, bool revEndian) {
             materials.back().read(stream, revEndian);
         }
     }
+}
+
+void Mat1::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
 }
 
 void Pan1::read(std::istream &stream, bool revEndian) {
@@ -114,6 +193,10 @@ void Pan1::read(std::istream &stream, bool revEndian) {
     originY = ORIGIN_Y_MAP[origin / 3];
 }
 
+void Pan1::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
+}
+
 void Pic1::read(std::istream &stream, bool revEndian) {
     Pan1::read(stream, revEndian);
     colorTopLeft = readColor8(stream, revEndian);
@@ -130,6 +213,10 @@ void Pic1::read(std::istream &stream, bool revEndian) {
         texCoord.bottomLeft.read(stream, revEndian);
         texCoord.bottomRight.read(stream, revEndian);
     }
+}
+
+void Pic1::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
 }
 
 void Txt1::read(std::istream &stream, bool revEndian) {
@@ -151,8 +238,16 @@ void Txt1::read(std::istream &stream, bool revEndian) {
     text = readNullTerminatedStr(stream);
 }
 
+void Txt1::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
+}
+
 void Bnd1::read(std::istream &stream, bool revEndian) {
     Pan1::read(stream, revEndian);
+}
+
+void Bnd1::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
 }
 
 void Wnd1::read(std::istream &stream, bool revEndian) {
@@ -184,8 +279,29 @@ void Wnd1::read(std::istream &stream, bool revEndian) {
     }
 }
 
+void Wnd1::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
+}
+
+void Grp1::read(std::istream &stream, bool revEndian) {
+    name = readFixedStr(stream, 0x10);
+    auto numNodes = readNumber<std::uint16_t>(stream, revEndian);
+    stream.seekg(2, std::ios::cur);
+    for (int i=0; i<numNodes; ++i) {
+        panes.push_back(readFixedStr(stream, revEndian));
+    }
+}
+
+void Grp1::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
+}
+
 void Brlyt::read(std::istream &stream) {
-    return header.read(stream);
+    header.read(stream);
+}
+
+void Brlyt::write(std::ostream &stream) {
+    header.write(stream);
 }
 
 template<class T>
@@ -211,14 +327,17 @@ void BrlytHeader::read(std::istream &stream) {
 
     stream.seekg(headerSize);
 
+    std::shared_ptr<BasePane> curPane, parentPane;
+    std::shared_ptr<GroupPane> curGroupPane, parentGroupPane;
+
     for (int i=0; i<sectionCount; ++i) {
         auto pos = stream.tellg();
 
         auto sectionHeader = readFixedStr(stream, 4);
         auto sectionSize = readNumber<std::uint32_t>(stream, reverseEndian);
+
         bool addPane = false;
-        std::shared_ptr<BasePane> curPane, parentPane;
-        std::shared_ptr<GroupPane> curGroupPane, parentGroupPane;
+        
         if (sectionHeader == Lyt1::MAGIC) {
             lyt1.read(stream, reverseEndian);
         } else if (sectionHeader == Txl1<true>::MAGIC) {
@@ -248,7 +367,7 @@ void BrlytHeader::read(std::istream &stream) {
             }
         } else if (sectionHeader == "pae1") {
             curPane = parentPane;
-            parentPane = std::shared_ptr<BasePane>(curPane->parent);
+            parentPane = curPane->parent.lock();
         } else if (sectionHeader == Grp1::MAGIC) {
             curGroupPane = std::make_shared<Grp1>();
             curGroupPane->read(stream, reverseEndian);
@@ -280,6 +399,10 @@ void BrlytHeader::read(std::istream &stream) {
 
         stream.seekg(pos + std::streamoff(sectionSize));
     }
+}
+
+void BrlytHeader::write(std::ostream &stream) {
+    // TODO implement
 }
 
 }

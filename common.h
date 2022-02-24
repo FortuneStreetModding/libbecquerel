@@ -13,6 +13,26 @@ static_assert(sizeof(float) == 4, "Size of single precision float must be 4 byte
 
 namespace bq {
 
+typedef std::array<std::uint8_t, 4> color8;
+typedef std::array<std::uint16_t, 4> color16;
+
+std::string readFixedStr(std::istream &stream, int len);
+std::string readNullTerminatedStr(std::istream &stream);
+template<class T>
+T readNumber(std::istream &stream, bool reverseEndian) {
+    T res;
+    char *resPtr = reinterpret_cast<char *>(&res);
+    stream.read(resPtr, sizeof(T));
+    if (reverseEndian) {
+        std::reverse(resPtr, resPtr + sizeof(T));
+    }
+    return res;
+}
+color8 readColor8(std::istream &stream, bool reverseEndian);
+color16 readColor16(std::istream &stream, bool reverseEndian);
+color8 toColor8(const color16 &color);
+color16 toColor16(const color8 &color);
+
 /**
  * @brief 2d vector class
  * 
@@ -21,7 +41,10 @@ namespace bq {
 template<class T>
 struct vec2 {
     T x,y;
-    void read(std::istream &stream, bool revEndian);
+    void read(std::istream &stream, bool revEndian) {
+        x = readNumber<T>(stream, revEndian);
+        y = readNumber<T>(stream, revEndian);
+    }
     void write(std::ostream &stream, bool revEndian);
 };
 
@@ -33,12 +56,13 @@ struct vec2 {
 template<class T>
 struct vec3 {
     T x,y,z;
-    void read(std::istream &stream, bool revEndian);
+    void read(std::istream &stream, bool revEndian) {
+        x = readNumber<T>(stream, revEndian);
+        y = readNumber<T>(stream, revEndian);
+        z = readNumber<T>(stream, revEndian);
+    }
     void write(std::ostream &stream, bool revEndian);
 };
-
-typedef std::array<std::uint8_t, 4> color8;
-typedef std::array<std::uint16_t, 4> color16;
 
 /**
  * @brief relative x-position of origin
@@ -171,6 +195,8 @@ struct Txl1 : virtual Section {
     void write(std::ostream &stream, bool revEndian);
 };
 
+template struct Txl1<true>;
+
 template<bool padding>
 struct Fnl1 : virtual Section {
     static inline const std::string MAGIC = "fnl1";
@@ -178,6 +204,8 @@ struct Fnl1 : virtual Section {
     void read(std::istream &stream, bool revEndian);
     void write(std::ostream &stream, bool revEndian);
 };
+
+template struct Fnl1<true>;
 
 struct TextureTransform {
     vec2<float> translate;
@@ -327,30 +355,34 @@ struct BaseMaterial {
 template<class IO>
 class TemporarySeek {
     public:
-    TemporarySeek(IO &s, std::streampos seekPos, std::ios::seekdir seekDir = std::ios::beg);
-    ~TemporarySeek();
+    TemporarySeek(IO &s, std::streampos seekPos, std::ios::seekdir seekDir = std::ios::beg) : stream(s) {
+        oldSeekPos = stream.tellg();
+        stream.seekg(seekPos, seekDir);
+    };
+    ~TemporarySeek() {
+        stream.seekg(oldSeekPos);
+    };
     private:
     IO &stream;
     std::streampos oldSeekPos;
 };
-
-std::string readFixedStr(std::istream &stream, int len);
-std::string readNullTerminatedStr(std::istream &stream);
-template<class T>
-T readNumber(std::istream &stream, bool reverseEndian);
-color8 readColor8(std::istream &stream, bool reverseEndian);
-color16 readColor16(std::istream &stream, bool reverseEndian);
-color8 toColor8(const color16 &color);
-color16 toColor16(const color8 &color);
 template<class T>
 class BitField {
     T &theValue;
     int theBitStart;
     int theNumBits;
     public:
-    BitField(T &value, int bitStart, int numBits);
-    operator T() const;
-    BitField<T> &operator=(T newBits);
+    BitField(T &value, int bitStart, int numBits)
+        : theValue(value), theBitStart(bitStart), theNumBits(numBits) {};
+    operator T() const {
+        return (theValue >> theBitStart) & ((T(1) << theNumBits) - 1);
+    };
+    BitField<T> &operator=(T newBits) {
+        T mask = ((T(1) << theNumBits) - 1) << theBitStart;
+        theValue &= ~mask;
+        theValue |= (newBits << theBitStart);
+        return *this;
+    };
 };
 
 }

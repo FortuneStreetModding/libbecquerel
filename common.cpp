@@ -5,19 +5,6 @@ namespace bq {
 
 Section::~Section() = default;
 
-template<class T>
-void vec2<T>::read(std::istream &stream, bool revEndian) {
-    x = readNumber<T>(stream, revEndian);
-    y = readNumber<T>(stream, revEndian);
-}
-
-template<class T>
-void vec3<T>::read(std::istream &stream, bool revEndian) {
-    x = readNumber<T>(stream, revEndian);
-    y = readNumber<T>(stream, revEndian);
-    z = readNumber<T>(stream, revEndian);
-}
-
 void WindowContent::read(std::istream &stream, bool revEndian) {
     colorTopLeft = readColor8(stream, revEndian);
     colorTopRight = readColor8(stream, revEndian);
@@ -33,6 +20,20 @@ void WindowContent::read(std::istream &stream, bool revEndian) {
         texCoord.bottomLeft.read(stream, revEndian);
         texCoord.bottomRight.read(stream, revEndian);
     }
+}
+
+void WindowContent::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
+}
+
+void WindowFrame::read(std::istream &stream, bool revEndian) {
+    materialIndex = readNumber<std::uint16_t>(stream, revEndian);
+    texFlip = (WindowFrameTexFlip)readNumber<std::uint8_t>(stream, revEndian);
+    stream.seekg(1, std::ios::cur);
+}
+
+void WindowFrame::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
 }
 
 template<bool padding>
@@ -51,6 +52,11 @@ void Txl1<padding>::read(std::istream &stream, bool revEndian) {
 }
 
 template<bool padding>
+void Txl1<padding>::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
+}
+
+template<bool padding>
 void Fnl1<padding>::read(std::istream &stream, bool revEndian) {
     auto count = readNumber<std::uint16_t>(stream, revEndian);
     stream.seekg(2, std::ios::cur); // padding
@@ -65,6 +71,21 @@ void Fnl1<padding>::read(std::istream &stream, bool revEndian) {
     }
 }
 
+template<bool padding>
+void Fnl1<padding>::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
+}
+
+void TextureTransform::read(std::istream &stream, bool revEndian) {
+    translate.read(stream, revEndian);
+    rotate = readNumber<float>(stream, revEndian);
+    scale.read(stream, revEndian);
+}
+
+void TextureTransform::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
+}
+
 void BlendMode::read(std::istream &stream, bool revEndian) {
     blendOp = (Op)readNumber<std::uint8_t>(stream, revEndian);
     srcFactor = (BlendFactor)readNumber<std::uint8_t>(stream, revEndian);
@@ -72,15 +93,8 @@ void BlendMode::read(std::istream &stream, bool revEndian) {
     logicOp = (Op)readNumber<std::uint8_t>(stream, revEndian);
 }
 
-template<class IO>
-TemporarySeek<IO>::TemporarySeek(IO &s, std::streampos seekPos, std::ios::seekdir seekDir) : stream(s) {
-    oldSeekPos = stream.tellg();
-    stream.seekg(seekPos, seekDir);
-}
-
-template<class IO>
-TemporarySeek<IO>::~TemporarySeek() {
-    stream.seekg(oldSeekPos);
+void BlendMode::write(std::ostream &stream, bool revEndian) {
+    // TODO implement
 }
 
 std::string readFixedStr(std::istream &stream, int len) {
@@ -92,17 +106,6 @@ std::string readFixedStr(std::istream &stream, int len) {
 std::string readNullTerminatedStr(std::istream &stream) {
     std::string res;
     std::getline(stream, res, '\0');
-    return res;
-}
-
-template<class T>
-T readNumber(std::istream &stream, bool reverseEndian) {
-    T res;
-    char *resPtr = reinterpret_cast<char *>(&res);
-    stream.read(resPtr, sizeof(T));
-    if (reverseEndian) {
-        std::reverse(resPtr, resPtr + sizeof(T));
-    }
     return res;
 }
 
@@ -132,23 +135,6 @@ color16 toColor16(const color8 &color) {
     color16 res;
     std::copy(color.begin(), color.end(), res.begin());
     return res;
-}
-
-template<class T>
-BitField<T>::BitField(T &value, int bitStart, int numBits) 
-    : theValue(value), theBitStart(bitStart), theNumBits(numBits) {}
-
-template<class T>
-BitField<T>::operator T() const {
-    return (theValue >> theBitStart) & ((T(1) << theNumBits) - 1);
-}
-
-template<class T>
-BitField<T> &BitField<T>::operator=(T newBits) {
-    T mask = ((T(1) << theNumBits) - 1) << theBitStart;
-    theValue &= ~mask;
-    theValue |= (newBits << theBitStart);
-    return *this;
 }
 
 }

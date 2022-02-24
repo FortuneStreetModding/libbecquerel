@@ -121,11 +121,16 @@ enum SwapChannel {
 };
 
 struct SwapMode {
-    SwapChannel swapChannels[4];
+    SwapChannel r;
+    SwapChannel g;
+    SwapChannel b;
+    SwapChannel a;
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
 };
 
 struct TevSwapModeTable {
-    SwapMode swapModes[4];
+    std::array<SwapMode, 4> swapModes;
     void read(std::istream &stream, bool revEndian);
     void write(std::ostream &stream, bool revEndian);
 };
