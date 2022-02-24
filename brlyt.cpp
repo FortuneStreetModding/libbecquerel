@@ -114,6 +114,24 @@ void Pan1::read(std::istream &stream, bool revEndian) {
     originY = ORIGIN_Y_MAP[origin / 3];
 }
 
+void Pic1::read(std::istream &stream, bool revEndian) {
+    Pan1::read(stream, revEndian);
+    colorTopLeft = readColor8(stream, revEndian);
+    colorTopRight = readColor8(stream, revEndian);
+    colorBottomLeft = readColor8(stream, revEndian);
+    colorBottomRight = readColor8(stream, revEndian);
+    materialIndex = readNumber<std::uint16_t>(stream, revEndian);
+    auto numUVs = readNumber<std::uint8_t>(stream, revEndian);
+    stream.seekg(1, std::ios::cur);
+    texCoords.resize(numUVs);
+    for (auto &texCoord: texCoords) {
+        texCoord.topLeft.read(stream, revEndian);
+        texCoord.topRight.read(stream, revEndian);
+        texCoord.bottomLeft.read(stream, revEndian);
+        texCoord.bottomRight.read(stream, revEndian);
+    }
+}
+
 void Txt1::read(std::istream &stream, bool revEndian) {
     Pan1::read(stream, revEndian);
     textLen = readNumber<std::uint16_t>(stream, revEndian);

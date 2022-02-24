@@ -48,7 +48,6 @@ void Txl1<padding>::read(std::istream &stream, bool revEndian) {
             textures.push_back(readNullTerminatedStr(stream));
         }
     }
-    return true;
 }
 
 template<bool padding>
@@ -64,7 +63,6 @@ void Fnl1<padding>::read(std::istream &stream, bool revEndian) {
             fonts.push_back(readNullTerminatedStr(stream));
         }
     }
-    return true;
 }
 
 void BlendMode::read(std::istream &stream, bool revEndian) {
