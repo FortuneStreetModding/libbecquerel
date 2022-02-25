@@ -20,6 +20,8 @@ std::string readFixedStr(std::istream &stream, int len);
 void writeFixedStr(const std::string &str, std::ostream &stream, int len);
 std::string readNullTerminatedStr(std::istream &stream);
 void writeNullTerminatedStr(const std::string &str, std::ostream &stream);
+std::u16string readNullTerminatedStrU16(std::istream &stream, bool revEndian);
+void writeNullTerminatedStrU16(const std::u16string &str, std::ostream &stream, bool revEndian);
 template<class T>
 T readNumber(std::istream &stream, bool reverseEndian) {
     T res;
@@ -372,16 +374,31 @@ struct BaseMaterial {
 };
 
 template<class IO>
-class TemporarySeek {
+class TemporarySeekI {
     public:
-    TemporarySeek(IO &s, std::streampos seekPos, std::ios::seekdir seekDir = std::ios::beg) : stream(s) {
+    TemporarySeekI(IO &s, std::streampos seekPos, std::ios::seekdir seekDir = std::ios::beg) : stream(s) {
         oldSeekPos = stream.tellg();
         stream.seekg(seekPos, seekDir);
     };
-    ~TemporarySeek() {
+    ~TemporarySeekI() {
         stream.seekg(oldSeekPos);
     };
-    TemporarySeek<IO> &operator=(const TemporarySeek<IO> &other) = delete;
+    TemporarySeekI<IO> &operator=(const TemporarySeekI<IO> &other) = delete;
+    private:
+    IO &stream;
+    std::streampos oldSeekPos;
+};
+template<class IO>
+class TemporarySeekO {
+    public:
+    TemporarySeekO(IO &s, std::streampos seekPos, std::ios::seekdir seekDir = std::ios::beg) : stream(s) {
+        oldSeekPos = stream.tellp();
+        stream.seekp(seekPos, seekDir);
+    };
+    ~TemporarySeekO() {
+        stream.seekp(oldSeekPos);
+    };
+    TemporarySeekO<IO> &operator=(const TemporarySeekO<IO> &other) = delete;
     private:
     IO &stream;
     std::streampos oldSeekPos;

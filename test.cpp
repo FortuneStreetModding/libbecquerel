@@ -1,4 +1,5 @@
 #include "brlyt.h"
+#include <codecvt>
 #include <fstream>
 
 using namespace std;
@@ -9,6 +10,7 @@ int main(int argc, char *argv[]) {
         cerr << "usage: bqtest [filename]" << endl;
         return 1;
     }
+    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> conv;
     fstream fs(argv[1]);
     Brlyt brlyt;
     brlyt.read(fs);
@@ -20,11 +22,15 @@ int main(int argc, char *argv[]) {
     cout << "lyt_drawfromcenter: " << lyt1.drawFromCenter << endl; 
     cout << "lyt_width: " << lyt1.width << endl;
     cout << "lyt_height: " << lyt1.height << endl;
+    auto &mat1 = brlyt.header.mat1;
+    for (int i=0; i<mat1.materials.size(); ++i) {
+        cout << "material at " << i << ": " << mat1.materials[i].name << endl;
+    }
     for (auto &entry: brlyt.header.paneTable) {
         cout << "pane_name: " << entry.first << endl;
         auto txt1 = dynamic_pointer_cast<Txt1>(entry.second);
         if (txt1) {
-            cout << "text: " << txt1->text << endl;
+            cout << "text: " << conv.to_bytes(txt1->text) << endl;
         }
     }
 }

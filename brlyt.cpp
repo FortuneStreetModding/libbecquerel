@@ -106,7 +106,12 @@ void TevStage::read(std::istream &stream, bool revEndian) {
 }
 
 void TevStage::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    writeNumber(texCoord, stream, revEndian);
+    writeNumber(color, stream, revEndian);
+    writeNumber(flag1, stream, revEndian);
+    for (auto flag: flags) {
+        writeNumber(flag, stream, revEndian);
+    }
 }
 
 void AlphaCompare::read(std::istream &stream, bool revEndian) {
@@ -119,7 +124,11 @@ void AlphaCompare::read(std::istream &stream, bool revEndian) {
 }
 
 void AlphaCompare::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    std::uint8_t c = std::uint8_t(comp0) + (std::uint8_t(comp1) << 4);
+    writeNumber(c, stream, revEndian);
+    writeNumber((std::uint8_t)op, stream, revEndian);
+    writeNumber(ref0, stream, revEndian);
+    writeNumber(ref1, stream, revEndian);
 }
 
 void Material::read(std::istream &stream, bool revEndian) {
@@ -173,7 +182,56 @@ void Material::read(std::istream &stream, bool revEndian) {
 }
 
 void Material::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    writeFixedStr(name, stream, 0x14);
+    writeColor16(toColor16(blackColor), stream, revEndian);
+    writeColor16(toColor16(whiteColor), stream, revEndian);
+    writeColor16(toColor16(colorRegister3), stream, revEndian);
+    for (auto &tevColor: tevColors) {
+        writeColor8(tevColor, stream, revEndian);
+    }
+    // update flag
+    texCount = textureMaps.size();
+    mtxCount = texTransforms.size();
+    texCoordGenCount = texCoordGens.size();
+    indSrtCount = indirectTransforms.size();
+    indTexOrderCount = indirectStages.size();
+    tevStagesCount = tevStages.size();
+    // write the flag integer
+    writeNumber(flags, stream, revEndian);
+
+    for (auto &textureMap: textureMaps) {
+        textureMap.write(stream, revEndian);
+    }
+    for (auto &texTransform: texTransforms) {
+        texTransform.write(stream, revEndian);
+    }
+    for (auto &texCoordGen: texCoordGens) {
+        texCoordGen.write(stream, revEndian);
+    }
+    if (hasChannelControl) {
+        chanCtrl.write(stream, revEndian);
+    }
+    if (hasMaterialColor) {
+        writeColor8(matColor, stream, revEndian);
+    }
+    if (hasTevSwapTable) {
+        swapModeTable.write(stream, revEndian);
+    }
+    for (auto &indTransform: indirectTransforms) {
+        indTransform.write(stream, revEndian);
+    }
+    for (auto &indStage: indirectStages) {
+        indStage.write(stream, revEndian);
+    }
+    for (auto &tevStage: tevStages) {
+        tevStage.write(stream, revEndian);
+    }
+    if (hasAlphaCompare) {
+        alphaCompare.write(stream, revEndian);
+    }
+    if (hasBlendMode) {
+        blendMode.write(stream, revEndian);
+    }
 }
 
 void Mat1::read(std::istream &stream, bool revEndian) {
@@ -183,7 +241,7 @@ void Mat1::read(std::istream &stream, bool revEndian) {
     for (int i=0; i<numMats; ++i) {
         auto off = readNumber<std::uint32_t>(stream, revEndian);
         {
-            TemporarySeek ts(stream, pos + std::streamoff(off - 8));
+            TemporarySeekI ts(stream, pos + std::streamoff(off - 8));
             materials.emplace_back();
             materials.back().read(stream, revEndian);
         }
@@ -191,7 +249,27 @@ void Mat1::read(std::istream &stream, bool revEndian) {
 }
 
 void Mat1::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    auto pos = stream.tellp();
+    writeNumber((std::uint16_t)materials.size(), stream, revEndian);
+    stream.put('\0');
+    stream.put('\0');
+    std::streamoff firstOff = materials.size() * sizeof(uint32_t);
+    auto offsetStartPos = stream.tellp();
+    auto pos2 = offsetStartPos + firstOff;
+    for (int i=0; i<firstOff; ++i) {
+        stream.put('\0');
+    }
+    stream.seekp(offsetStartPos);
+    for (auto &mat: materials) {
+        writeNumber(std::uint32_t(pos2 - pos), stream, revEndian);
+
+        {
+            TemporarySeekO ts(stream, pos2);
+            mat.write(stream, revEndian);
+            pos2 = stream.tellp();
+        }
+    }
+    stream.seekp(pos2); // seek to end of allocated materials
 }
 
 void Pan1::read(std::istream &stream, bool revEndian) {
@@ -211,7 +289,21 @@ void Pan1::read(std::istream &stream, bool revEndian) {
 }
 
 void Pan1::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    uint8_t originXIdx = std::find(ORIGIN_X_MAP.begin(), ORIGIN_X_MAP.end(), originX) - ORIGIN_X_MAP.begin();
+    uint8_t originYIdx = std::find(ORIGIN_Y_MAP.begin(), ORIGIN_Y_MAP.end(), originY) - ORIGIN_Y_MAP.begin();
+    uint8_t origin = originXIdx + 3*originYIdx;
+
+    writeNumber(flags, stream, revEndian);
+    writeNumber(origin, stream, revEndian);
+    writeNumber(alpha, stream, revEndian);
+    writeNumber(paneMagFlags, stream, revEndian);
+    writeFixedStr(name, stream, 0x10);
+    writeFixedStr(userDataInfo, stream, 0x8);
+    translate.write(stream, revEndian);
+    rotate.write(stream, revEndian);
+    scale.write(stream, revEndian);
+    writeNumber(width, stream, revEndian);
+    writeNumber(height, stream, revEndian);
 }
 
 void Pic1::read(std::istream &stream, bool revEndian) {
@@ -233,7 +325,20 @@ void Pic1::read(std::istream &stream, bool revEndian) {
 }
 
 void Pic1::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    Pan1::write(stream, revEndian);
+    writeColor8(colorTopLeft, stream, revEndian);
+    writeColor8(colorTopRight, stream, revEndian);
+    writeColor8(colorBottomLeft, stream, revEndian);
+    writeColor8(colorBottomRight, stream, revEndian);
+    writeNumber(materialIndex, stream, revEndian);
+    writeNumber((std::uint8_t)texCoords.size(), stream, revEndian);
+    stream.put('\0');
+    for (auto &texCoord: texCoords) {
+        texCoord.topLeft.write(stream, revEndian);
+        texCoord.topRight.write(stream, revEndian);
+        texCoord.bottomLeft.write(stream, revEndian);
+        texCoord.bottomRight.write(stream, revEndian);
+    }
 }
 
 void Txt1::read(std::istream &stream, bool revEndian) {
@@ -252,11 +357,26 @@ void Txt1::read(std::istream &stream, bool revEndian) {
     fontSize.read(stream, revEndian);
     charSpace = readNumber<float>(stream, revEndian);
     lineSpace = readNumber<float>(stream, revEndian);
-    text = readNullTerminatedStr(stream);
+    text = readNullTerminatedStrU16(stream, revEndian);
 }
 
 void Txt1::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    Pan1::write(stream, revEndian);
+    writeNumber(textLen, stream, revEndian);
+    writeNumber(maxTextLen, stream, revEndian);
+    writeNumber(materialIndex, stream, revEndian);
+    writeNumber(fontIndex, stream, revEndian);
+    writeNumber(textAlign, stream, revEndian);
+    writeNumber((std::uint8_t)lineAlign, stream, revEndian);
+    writeNumber(flagsTxt1, stream, revEndian);
+    stream.put('\0');
+    writeNumber(UINT32_C(24), stream, revEndian);
+    writeColor8(fontTopColor, stream, revEndian);
+    writeColor8(fontBottomColor, stream, revEndian);
+    fontSize.write(stream, revEndian);
+    writeNumber(charSpace, stream, revEndian);
+    writeNumber(lineSpace, stream, revEndian);
+    writeNullTerminatedStrU16(text, stream, revEndian);
 }
 
 void Bnd1::read(std::istream &stream, bool revEndian) {
@@ -264,7 +384,7 @@ void Bnd1::read(std::istream &stream, bool revEndian) {
 }
 
 void Bnd1::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    Pan1::write(stream, revEndian);
 }
 
 void Wnd1::read(std::istream &stream, bool revEndian) {
@@ -278,7 +398,7 @@ void Wnd1::read(std::istream &stream, bool revEndian) {
     frameElementRight = readNumber<std::uint16_t>(stream, revEndian);
     frameElementTop = readNumber<std::uint16_t>(stream, revEndian);
     frameElementBottom = readNumber<std::uint16_t>(stream, revEndian);
-    frameCount = readNumber<std::uint8_t>(stream, revEndian);
+    auto frameCount = readNumber<std::uint8_t>(stream, revEndian);
     flagsWnd1 = readNumber<std::uint8_t>(stream, revEndian);
     stream.seekg(2, std::ios::cur);
     auto contentOffset = readNumber<std::uint32_t>(stream, revEndian);
@@ -290,14 +410,55 @@ void Wnd1::read(std::istream &stream, bool revEndian) {
     for (auto &frame: frames) {
         auto off = readNumber<std::uint32_t>(stream, revEndian);
         {
-            TemporarySeek ts(stream, pos + std::streamoff(off));
+            TemporarySeekI ts(stream, pos + std::streamoff(off));
             frame.read(stream, revEndian);
         }
     }
 }
 
 void Wnd1::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    Pan1::write(stream, revEndian);
+    auto pos = stream.tellp();
+    writeNumber(stretchLeft, stream, revEndian);
+    writeNumber(stretchRight, stream, revEndian);
+    writeNumber(stretchTop, stream, revEndian);
+    writeNumber(stretchBottom, stream, revEndian);
+    writeNumber(frameElementLeft, stream, revEndian);
+    writeNumber(frameElementRight, stream, revEndian);
+    writeNumber(frameElementTop, stream, revEndian);
+    writeNumber(frameElementBottom, stream, revEndian);
+    writeNumber((std::uint8_t)frames.size(), stream, revEndian);
+    writeNumber(flagsWnd1, stream, revEndian);
+    stream.put('\0');
+    stream.put('\0');
+    
+    auto offsetStartPos = stream.tellp();
+    stream.write("\0\0\0\0\0\0\0\0", 8);
+    auto pos2 = stream.tellp();
+    stream.seekp(offsetStartPos);
+    writeNumber(std::uint32_t(pos2 - pos), stream, revEndian);
+    {
+        TemporarySeekO ts(stream, pos2);
+        content.write(stream, revEndian);
+        pos2 = stream.tellp();
+    }
+    writeNumber(std::uint32_t(pos2 - pos), stream, revEndian);
+    stream.seekp(pos2);
+    auto frameOffStartPos = stream.tellp();
+    for (int i=0; i<frames.size(); ++i) {
+        writeNumber(UINT32_C(0), stream, revEndian);
+    }
+    auto pos3 = stream.tellp();
+    stream.seekp(frameOffStartPos);
+    for (auto &frame: frames) {
+        writeNumber(std::uint32_t(pos3 - pos), stream, revEndian);
+        {
+            TemporarySeekO ts1(stream, pos3);
+            frame.write(stream, revEndian);
+            pos3 = stream.tellp();
+        }
+    }
+    stream.seekp(pos3); // seek to end of allocated stuff
 }
 
 void Grp1::read(std::istream &stream, bool revEndian) {
@@ -305,12 +466,18 @@ void Grp1::read(std::istream &stream, bool revEndian) {
     auto numNodes = readNumber<std::uint16_t>(stream, revEndian);
     stream.seekg(2, std::ios::cur);
     for (int i=0; i<numNodes; ++i) {
-        panes.push_back(readFixedStr(stream, revEndian));
+        panes.push_back(readFixedStr(stream, 0x10));
     }
 }
 
 void Grp1::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    writeFixedStr(name, stream, 0x10);
+    writeNumber((std::uint16_t)panes.size(), stream, revEndian);
+    stream.put('\0');
+    stream.put('\0');
+    for (auto &node: panes) {
+        writeFixedStr(node, stream, 0x10);
+    }
 }
 
 void Brlyt::read(std::istream &stream) {
@@ -419,6 +586,18 @@ void BrlytHeader::read(std::istream &stream) {
 }
 
 void BrlytHeader::write(std::ostream &stream) {
+    writeFixedStr(MAGIC, stream, 4);
+    bool reverseEndian = (bom != 0xfeff);
+    writeNumber(bom, stream, false);
+    writeNumber(version, stream, reverseEndian);
+    auto fileSizePos = stream.tellp();
+    writeNumber(UINT32_C(0), stream, reverseEndian);
+    // header size
+    writeNumber(std::uint16_t(stream.tellp() + std::streamoff(4)), stream, reverseEndian);
+    auto sectionCountPos = stream.tellp();
+    stream.put('\0');
+    stream.put('\0');
+    
     // TODO implement
 }
 

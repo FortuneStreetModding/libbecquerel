@@ -59,7 +59,7 @@ static std::vector<std::string> readStringList(std::istream &stream, bool revEnd
         auto off = readNumber<std::uint32_t>(stream, revEndian);
         if (padding) stream.seekg(4, std::ios::cur);
         {
-            TemporarySeek ts(stream, pos + std::streamoff(off));
+            TemporarySeekI ts(stream, pos + std::streamoff(off));
             result.push_back(readNullTerminatedStr(stream));
         }
     }
@@ -71,7 +71,13 @@ static void writeStringList(const std::vector<std::string> &list, std::ostream &
     stream.put('\0');
     stream.put('\0');
     auto pos = stream.tellp();
-    auto pos2 = pos + std::streamoff(list.size() * sizeof(uint32_t) * (padding ? 2 : 1));
+    std::streamoff firstOff = list.size() * sizeof(uint32_t) * (padding ? 2 : 1);
+    auto pos2 = pos + firstOff;
+    for (int i=0; i<firstOff; ++i) {
+        stream.put('\0');
+    }
+    stream.seekp(pos);
+
     for (auto &item: list) {
         writeNumber(std::uint32_t(pos2 - pos), stream, revEndian);
         if (padding) {
@@ -79,7 +85,7 @@ static void writeStringList(const std::vector<std::string> &list, std::ostream &
         }
 
         {
-            TemporarySeek ts(stream, pos2);
+            TemporarySeekO ts(stream, pos2);
             writeNullTerminatedStr(item, stream);
             pos2 = stream.tellp();
         }
@@ -140,7 +146,11 @@ std::string readFixedStr(std::istream &stream, int len) {
 }
 
 void writeFixedStr(const std::string &str, std::ostream &stream, int len) {
-    stream.write(str.data(), len);
+    int toWriteFromStr = std::min((int)str.size(), len);
+    stream.write(str.data(), toWriteFromStr);
+    for (int i=0; i<len - toWriteFromStr; ++i) {
+        stream.put('\0');
+    }
 }
 
 std::string readNullTerminatedStr(std::istream &stream) {
@@ -151,6 +161,26 @@ std::string readNullTerminatedStr(std::istream &stream) {
 
 void writeNullTerminatedStr(const std::string &str, std::ostream &stream) {
     stream.write(str.data(), str.length() + 1);
+}
+
+std::u16string readNullTerminatedStrU16(std::istream &stream, bool revEndian) {
+    std::u16string result;
+    for (;;) {
+        auto c = readNumber<std::uint16_t>(stream, revEndian);
+        if (stream.eof() || c == 0) {
+            break;
+        }
+        result.push_back(c);
+    }
+    return result;
+}
+
+void writeNullTerminatedStrU16(const std::u16string &str, std::ostream &stream, bool revEndian) {
+    for (auto c: str) {
+        writeNumber((std::uint16_t)c, stream, revEndian);
+    }
+    stream.put('\0');
+    stream.put('\0');
 }
 
 color8 readColor8(std::istream &stream, bool reverseEndian) {
