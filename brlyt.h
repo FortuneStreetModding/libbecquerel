@@ -194,7 +194,7 @@ struct Material : BaseMaterial<TextureRef, TevStage, AlphaCompare> {
     void write(std::ostream &stream, bool revEndian);
 };
 
-struct Mat1 {
+struct Mat1 : Section {
     static inline const std::string MAGIC = "mat1";
     std::vector<Material> materials;
     void read(std::istream &stream, bool revEndian);
@@ -208,6 +208,7 @@ struct Pan1 : BasePane {
     std::uint8_t flags;
     void read(std::istream &stream, bool revEndian);
     void write(std::ostream &stream, bool revEndian);
+    virtual std::string signature();
 };
 
 struct Pic1 : Pan1 {
@@ -220,6 +221,7 @@ struct Pic1 : Pan1 {
     std::uint16_t materialIndex;
     void read(std::istream &stream, bool revEndian);
     void write(std::ostream &stream, bool revEndian);
+    virtual std::string signature();
 };
 
 struct Txt1 : Pan1 {
@@ -240,12 +242,14 @@ struct Txt1 : Pan1 {
     std::uint8_t flagsTxt1;
     void read(std::istream &stream, bool revEndian);
     void write(std::ostream &stream, bool revEndian);
+    virtual std::string signature();
 };
 
 struct Bnd1 : Pan1 {
     static inline const std::string MAGIC = "bnd1";
     void read(std::istream &stream, bool revEndian);
     void write(std::ostream &stream, bool revEndian);
+    virtual std::string signature();
 };
 
 struct Wnd1 : Pan1 {
@@ -263,6 +267,7 @@ struct Wnd1 : Pan1 {
     std::vector<WindowFrame> frames;
     void read(std::istream &stream, bool revEndian);
     void write(std::ostream &stream, bool revEndian);
+    virtual std::string signature();
 };
 
 struct Grp1 : GroupPane {

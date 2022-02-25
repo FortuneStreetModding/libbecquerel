@@ -3,6 +3,12 @@
 
 namespace bq {
 
+void Section::read(std::istream &stream, bool revEndian) {
+    // nothing to do
+}
+void Section::write(std::ostream &stream, bool revEndian) {
+    // nothing to do
+}
 Section::~Section() = default;
 
 void WindowContent::read(std::istream &stream, bool revEndian) {
@@ -48,6 +54,10 @@ void WindowFrame::write(std::ostream &stream, bool revEndian) {
     writeNumber(materialIndex, stream, revEndian);
     writeNumber((std::uint8_t)texFlip, stream, revEndian);
     stream.put('\0');
+}
+
+std::string GroupPane::signature() {
+    return GroupPane::MAGIC;
 }
 
 static std::vector<std::string> readStringList(std::istream &stream, bool revEndian, bool padding) {
@@ -221,6 +231,27 @@ color16 toColor16(const color8 &color) {
     color16 res;
     std::copy(color.begin(), color.end(), res.begin());
     return res;
+}
+
+void writeSection(const std::string &magic, Section &sec, std::ostream &stream, bool revEndian) {
+    auto startPos = stream.tellp();
+    //std::cout << magic << " " << std::hex << startPos << std::endl; // TODO remove debug
+    writeFixedStr(magic, stream, 4);
+    auto sectionSizePos = stream.tellp();
+    writeNumber(UINT32_C(0), stream, revEndian);
+    sec.write(stream, revEndian);
+    alignFile(stream);
+    auto endPos = stream.tellp();
+    {
+        TemporarySeekO ts(stream, sectionSizePos);
+        writeNumber(std::uint32_t(endPos - startPos), stream, revEndian);
+    }
+}
+
+void alignFile(std::ostream &stream) {
+    while (stream.tellp() % 4 != 0) {
+        stream.put('\0');
+    }
 }
 
 }

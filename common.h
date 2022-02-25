@@ -34,7 +34,7 @@ T readNumber(std::istream &stream, bool reverseEndian) {
 }
 template<class T>
 void writeNumber(T number, std::ostream &stream, bool reverseEndian) {
-    char *numPtr = reinterpret_cast<char *>(&numPtr);
+    char *numPtr = reinterpret_cast<char *>(&number);
     if (reverseEndian) {
         std::reverse(numPtr, numPtr + sizeof(T));
     }
@@ -59,7 +59,7 @@ struct vec2 {
         x = readNumber<T>(stream, revEndian);
         y = readNumber<T>(stream, revEndian);
     }
-    void write(std::ostream &stream, bool revEndian) {
+    void write(std::ostream &stream, bool revEndian) const {
         writeNumber(x, stream, revEndian);
         writeNumber(y, stream, revEndian);
     }
@@ -78,7 +78,7 @@ struct vec3 {
         y = readNumber<T>(stream, revEndian);
         z = readNumber<T>(stream, revEndian);
     }
-    void write(std::ostream &stream, bool revEndian) {
+    void write(std::ostream &stream, bool revEndian) const {
         writeNumber(x, stream, revEndian);
         writeNumber(y, stream, revEndian);
         writeNumber(z, stream, revEndian);
@@ -153,8 +153,8 @@ struct WindowFrame {
  * 
  */
 struct Section {
-    virtual void read(std::istream &stream, bool revEndian) = 0;
-    virtual void write(std::ostream &stream, bool revEndian) = 0;
+    virtual void read(std::istream &stream, bool revEndian);
+    virtual void write(std::ostream &stream, bool revEndian);
     virtual ~Section();
 };
 
@@ -162,7 +162,7 @@ struct Section {
  * @brief base class for layout panes
  * 
  */
-struct BasePane : virtual Section {
+struct BasePane : Section {
     std::string name;
     std::uint8_t paneMagFlags;
     std::string userDataInfo;
@@ -180,6 +180,7 @@ struct BasePane : virtual Section {
     bool influenceAlpha;
     std::weak_ptr<BasePane> parent;
     std::vector<std::shared_ptr<BasePane>> children;
+    virtual std::string signature() = 0;
 };
 
 struct GroupPane : Section {
@@ -188,6 +189,7 @@ struct GroupPane : Section {
     std::vector<std::string> panes;
     std::vector<std::shared_ptr<GroupPane>> children;
     std::weak_ptr<GroupPane> parent;
+    std::string signature();
 };
 
 /**
@@ -198,7 +200,6 @@ struct BaseHeader {
     unsigned version;
     std::shared_ptr<BasePane> rootPane;
     std::shared_ptr<GroupPane> rootGroup;
-    std::unordered_map<std::string, std::shared_ptr<BasePane>> paneTable;
 };
 
 struct LayoutInfo : virtual Section {
@@ -209,7 +210,7 @@ struct LayoutInfo : virtual Section {
 };
 
 template<bool padding>
-struct Txl1 : virtual Section {
+struct Txl1 : Section {
     static inline const std::string MAGIC = "txl1";
     std::vector<std::string> textures;
     void read(std::istream &stream, bool revEndian);
@@ -219,7 +220,7 @@ struct Txl1 : virtual Section {
 template struct Txl1<true>;
 
 template<bool padding>
-struct Fnl1 : virtual Section {
+struct Fnl1 : Section {
     static inline const std::string MAGIC = "fnl1";
     std::vector<std::string> fonts;
     void read(std::istream &stream, bool revEndian);
@@ -422,6 +423,10 @@ class BitField {
     };
     BitField<T> &operator=(const BitField<T> &other) = delete;
 };
+
+void writeSection(const std::string &magic, Section &sec, std::ostream &stream, bool revEndian);
+
+void alignFile(std::ostream &stream);
 
 }
 

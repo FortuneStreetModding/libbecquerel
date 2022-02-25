@@ -182,6 +182,8 @@ void Material::read(std::istream &stream, bool revEndian) {
 }
 
 void Material::write(std::ostream &stream, bool revEndian) {
+    //std::cout << "material: " << name << " " << std::hex << stream.tellp() << std::endl;
+
     writeFixedStr(name, stream, 0x14);
     writeColor16(toColor16(blackColor), stream, revEndian);
     writeColor16(toColor16(whiteColor), stream, revEndian);
@@ -211,9 +213,11 @@ void Material::write(std::ostream &stream, bool revEndian) {
     if (hasChannelControl) {
         chanCtrl.write(stream, revEndian);
     }
+    //std::cout << std::hex << stream.tellp() << std::endl;
     if (hasMaterialColor) {
         writeColor8(matColor, stream, revEndian);
     }
+    //std::cout << std::hex << stream.tellp() << std::endl;
     if (hasTevSwapTable) {
         swapModeTable.write(stream, revEndian);
     }
@@ -249,7 +253,7 @@ void Mat1::read(std::istream &stream, bool revEndian) {
 }
 
 void Mat1::write(std::ostream &stream, bool revEndian) {
-    auto pos = stream.tellp();
+    auto pos = stream.tellp() - std::streamoff(8);
     writeNumber((std::uint16_t)materials.size(), stream, revEndian);
     stream.put('\0');
     stream.put('\0');
@@ -266,6 +270,7 @@ void Mat1::write(std::ostream &stream, bool revEndian) {
         {
             TemporarySeekO ts(stream, pos2);
             mat.write(stream, revEndian);
+            alignFile(stream);
             pos2 = stream.tellp();
         }
     }
@@ -306,6 +311,10 @@ void Pan1::write(std::ostream &stream, bool revEndian) {
     writeNumber(height, stream, revEndian);
 }
 
+std::string Pan1::signature() {
+    return Pan1::MAGIC;
+}
+
 void Pic1::read(std::istream &stream, bool revEndian) {
     Pan1::read(stream, revEndian);
     colorTopLeft = readColor8(stream, revEndian);
@@ -339,6 +348,10 @@ void Pic1::write(std::ostream &stream, bool revEndian) {
         texCoord.bottomLeft.write(stream, revEndian);
         texCoord.bottomRight.write(stream, revEndian);
     }
+}
+
+std::string Pic1::signature() {
+    return Pic1::MAGIC;
 }
 
 void Txt1::read(std::istream &stream, bool revEndian) {
@@ -379,12 +392,20 @@ void Txt1::write(std::ostream &stream, bool revEndian) {
     writeNullTerminatedStrU16(text, stream, revEndian);
 }
 
+std::string Txt1::signature() {
+    return Txt1::MAGIC;
+}
+
 void Bnd1::read(std::istream &stream, bool revEndian) {
     Pan1::read(stream, revEndian);
 }
 
 void Bnd1::write(std::ostream &stream, bool revEndian) {
     Pan1::write(stream, revEndian);
+}
+
+std::string Bnd1::signature() {
+    return Bnd1::MAGIC;
 }
 
 void Wnd1::read(std::istream &stream, bool revEndian) {
@@ -459,6 +480,10 @@ void Wnd1::write(std::ostream &stream, bool revEndian) {
         }
     }
     stream.seekp(pos3); // seek to end of allocated stuff
+}
+
+std::string Wnd1::signature() {
+    return Wnd1::MAGIC;
 }
 
 void Grp1::read(std::istream &stream, bool revEndian) {
@@ -569,7 +594,6 @@ void BrlytHeader::read(std::istream &stream) {
 
         if (addPane) {
             curPane->read(stream, reverseEndian);
-            paneTable.emplace(curPane->name, curPane);
             setPane(curPane, parentPane);
         }
 
@@ -585,11 +609,27 @@ void BrlytHeader::read(std::istream &stream) {
     }
 }
 
+template<class Pane, class SecCount>
+void writePanes(Pane &pane, std::ostream &stream, bool revEndian, const std::string &startTag, const std::string &endTag, SecCount &secCount) {
+    writeSection(pane.signature(), pane, stream, revEndian);
+    ++secCount;
+
+    if (!pane.children.empty()) {
+        secCount += 2;
+        Section nullSec;
+        writeSection(startTag, nullSec, stream, revEndian);
+        for (auto &child: pane.children) {
+            writePanes(*child, stream, revEndian, startTag, endTag, secCount);
+        }
+        writeSection(endTag, nullSec, stream, revEndian);
+    }
+}
+
 void BrlytHeader::write(std::ostream &stream) {
     writeFixedStr(MAGIC, stream, 4);
     bool reverseEndian = (bom != 0xfeff);
     writeNumber(bom, stream, false);
-    writeNumber(version, stream, reverseEndian);
+    writeNumber((std::uint16_t)version, stream, reverseEndian);
     auto fileSizePos = stream.tellp();
     writeNumber(UINT32_C(0), stream, reverseEndian);
     // header size
@@ -597,8 +637,43 @@ void BrlytHeader::write(std::ostream &stream) {
     auto sectionCountPos = stream.tellp();
     stream.put('\0');
     stream.put('\0');
-    
-    // TODO implement
+
+    uint16_t sectionCount = 1;
+
+    writeSection(Lyt1::MAGIC, lyt1, stream, reverseEndian);
+    if (!txl1.textures.empty()) {
+        writeSection(Txl1<true>::MAGIC, txl1, stream, reverseEndian);
+        ++sectionCount;
+    }
+    if (!fnl1.fonts.empty()) {
+        writeSection(Fnl1<true>::MAGIC, fnl1, stream, reverseEndian);
+        ++sectionCount;
+    }
+    if (!mat1.materials.empty()) {
+        writeSection(Mat1::MAGIC, mat1, stream, reverseEndian);
+        ++sectionCount;
+    }
+
+    if (rootPane) {
+        writePanes(*rootPane, stream, reverseEndian, "pas1", "pae1", sectionCount);
+    }
+    if (rootGroup) {
+        writePanes(*rootGroup, stream, reverseEndian, "pas1", "pae1", sectionCount);
+    }
+
+    {
+        TemporarySeekO ts(stream, sectionCountPos);
+        writeNumber(sectionCount, stream, reverseEndian);
+    }
+
+    alignFile(stream);
+
+    auto fileEnd = stream.tellp();
+
+    {
+        TemporarySeekO ts(stream, fileSizePos);
+        writeNumber((std::uint32_t)fileEnd, stream, reverseEndian);
+    }
 }
 
 }
