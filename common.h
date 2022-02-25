@@ -17,7 +17,9 @@ typedef std::array<std::uint8_t, 4> color8;
 typedef std::array<std::uint16_t, 4> color16;
 
 std::string readFixedStr(std::istream &stream, int len);
+void writeFixedStr(const std::string &str, std::ostream &stream, int len);
 std::string readNullTerminatedStr(std::istream &stream);
+void writeNullTerminatedStr(const std::string &str, std::ostream &stream);
 template<class T>
 T readNumber(std::istream &stream, bool reverseEndian) {
     T res;
@@ -28,8 +30,18 @@ T readNumber(std::istream &stream, bool reverseEndian) {
     }
     return res;
 }
+template<class T>
+void writeNumber(T number, std::ostream &stream, bool reverseEndian) {
+    char *numPtr = reinterpret_cast<char *>(&numPtr);
+    if (reverseEndian) {
+        std::reverse(numPtr, numPtr + sizeof(T));
+    }
+    stream.write(numPtr, sizeof(T));
+}
 color8 readColor8(std::istream &stream, bool reverseEndian);
+void writeColor8(const color8 &color, std::ostream &stream, bool reverseEndian);
 color16 readColor16(std::istream &stream, bool reverseEndian);
+void writeColor16(const color16 &color, std::ostream &stream, bool reverseEndian);
 color8 toColor8(const color16 &color);
 color16 toColor16(const color8 &color);
 
@@ -45,7 +57,10 @@ struct vec2 {
         x = readNumber<T>(stream, revEndian);
         y = readNumber<T>(stream, revEndian);
     }
-    void write(std::ostream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian) {
+        writeNumber(x, stream, revEndian);
+        writeNumber(y, stream, revEndian);
+    }
 };
 
 /**
@@ -61,7 +76,11 @@ struct vec3 {
         y = readNumber<T>(stream, revEndian);
         z = readNumber<T>(stream, revEndian);
     }
-    void write(std::ostream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian) {
+        writeNumber(x, stream, revEndian);
+        writeNumber(y, stream, revEndian);
+        writeNumber(z, stream, revEndian);
+    }
 };
 
 /**

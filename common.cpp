@@ -23,7 +23,19 @@ void WindowContent::read(std::istream &stream, bool revEndian) {
 }
 
 void WindowContent::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    writeColor8(colorTopLeft, stream, revEndian);
+    writeColor8(colorTopRight, stream, revEndian);
+    writeColor8(colorBottomLeft, stream, revEndian);
+    writeColor8(colorBottomRight, stream, revEndian);
+    writeNumber(materialIndex, stream, revEndian);
+    writeNumber((std::uint8_t)texCoords.size(), stream, revEndian);
+    stream.put('\0');
+    for (auto &texCoord: texCoords) {
+        texCoord.topLeft.write(stream, revEndian);
+        texCoord.topRight.write(stream, revEndian);
+        texCoord.bottomLeft.write(stream, revEndian);
+        texCoord.bottomRight.write(stream, revEndian);
+    } 
 }
 
 void WindowFrame::read(std::istream &stream, bool revEndian) {
@@ -33,47 +45,66 @@ void WindowFrame::read(std::istream &stream, bool revEndian) {
 }
 
 void WindowFrame::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    writeNumber(materialIndex, stream, revEndian);
+    writeNumber((std::uint8_t)texFlip, stream, revEndian);
+    stream.put('\0');
+}
+
+static std::vector<std::string> readStringList(std::istream &stream, bool revEndian, bool padding) {
+    std::vector<std::string> result;
+    auto count = readNumber<std::uint16_t>(stream, revEndian);
+    stream.seekg(2, std::ios::cur); // padding
+    auto pos = stream.tellg();
+    for (int i=0; i<count; ++i) {
+        auto off = readNumber<std::uint32_t>(stream, revEndian);
+        if (padding) stream.seekg(4, std::ios::cur);
+        {
+            TemporarySeek ts(stream, pos + std::streamoff(off));
+            result.push_back(readNullTerminatedStr(stream));
+        }
+    }
+    return result;
+}
+
+static void writeStringList(const std::vector<std::string> &list, std::ostream &stream, bool revEndian, bool padding) {
+    writeNumber((std::uint16_t)list.size(), stream, revEndian);
+    stream.put('\0');
+    stream.put('\0');
+    auto pos = stream.tellp();
+    auto pos2 = pos + std::streamoff(list.size() * sizeof(uint32_t) * (padding ? 2 : 1));
+    for (auto &item: list) {
+        writeNumber(std::uint32_t(pos2 - pos), stream, revEndian);
+        if (padding) {
+            stream.write("\0\0\0\0", 4);
+        }
+
+        {
+            TemporarySeek ts(stream, pos2);
+            writeNullTerminatedStr(item, stream);
+            pos2 = stream.tellp();
+        }
+    }
+    stream.seekp(pos2); // seek to end of allocated strings
 }
 
 template<bool padding>
 void Txl1<padding>::read(std::istream &stream, bool revEndian) {
-    auto count = readNumber<std::uint16_t>(stream, revEndian);
-    stream.seekg(2, std::ios::cur); // padding
-    auto pos = stream.tellg();
-    for (int i=0; i<count; ++i) {
-        auto off = readNumber<std::uint32_t>(stream, revEndian);
-        if (padding) stream.seekg(4, std::ios::cur);
-        {
-            TemporarySeek ts(stream, pos + std::streamoff(off));
-            textures.push_back(readNullTerminatedStr(stream));
-        }
-    }
+    textures = readStringList(stream, revEndian, padding);
 }
 
 template<bool padding>
 void Txl1<padding>::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    writeStringList(textures, stream, revEndian, padding);
 }
 
 template<bool padding>
 void Fnl1<padding>::read(std::istream &stream, bool revEndian) {
-    auto count = readNumber<std::uint16_t>(stream, revEndian);
-    stream.seekg(2, std::ios::cur); // padding
-    auto pos = stream.tellg();
-    for (int i=0; i<count; ++i) {
-        auto off = readNumber<std::uint32_t>(stream, revEndian);
-        if (padding) stream.seekg(4, std::ios::cur);
-        {
-            TemporarySeek ts(stream, pos + std::streamoff(off));
-            fonts.push_back(readNullTerminatedStr(stream));
-        }
-    }
+    fonts = readStringList(stream, revEndian, padding);
 }
 
 template<bool padding>
 void Fnl1<padding>::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    writeStringList(fonts, stream, revEndian, padding);
 }
 
 void TextureTransform::read(std::istream &stream, bool revEndian) {
@@ -83,7 +114,9 @@ void TextureTransform::read(std::istream &stream, bool revEndian) {
 }
 
 void TextureTransform::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    translate.write(stream, revEndian);
+    writeNumber(rotate, stream, revEndian);
+    scale.write(stream, revEndian);
 }
 
 void BlendMode::read(std::istream &stream, bool revEndian) {
@@ -94,7 +127,10 @@ void BlendMode::read(std::istream &stream, bool revEndian) {
 }
 
 void BlendMode::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    writeNumber((std::uint8_t)blendOp, stream, revEndian);
+    writeNumber((std::uint8_t)srcFactor, stream, revEndian);
+    writeNumber((std::uint8_t)destFactor, stream, revEndian);
+    writeNumber((std::uint8_t)logicOp, stream, revEndian);
 }
 
 std::string readFixedStr(std::istream &stream, int len) {
@@ -103,26 +139,46 @@ std::string readFixedStr(std::istream &stream, int len) {
     return res;
 }
 
+void writeFixedStr(const std::string &str, std::ostream &stream, int len) {
+    stream.write(str.data(), len);
+}
+
 std::string readNullTerminatedStr(std::istream &stream) {
     std::string res;
     std::getline(stream, res, '\0');
     return res;
 }
 
+void writeNullTerminatedStr(const std::string &str, std::ostream &stream) {
+    stream.write(str.data(), str.length() + 1);
+}
+
 color8 readColor8(std::istream &stream, bool reverseEndian) {
     color8 res;
-    for (int i=0; i<4; ++i) {
-        res[i] = readNumber<std::uint8_t>(stream, reverseEndian);
+    for (auto &colval: res) {
+        colval = readNumber<std::uint8_t>(stream, reverseEndian);
     }
     return res;
 }
 
+void writeColor8(const color8 &color, std::ostream &stream, bool reverseEndian) {
+    for (auto colval: color) {
+        writeNumber(colval, stream, reverseEndian);
+    }
+}
+
 color16 readColor16(std::istream &stream, bool reverseEndian) {
     color16 res;
-    for (int i=0; i<4; ++i) {
-        res[i] = readNumber<std::uint16_t>(stream, reverseEndian);
+    for (auto &colval: res) {
+        colval = readNumber<std::uint16_t>(stream, reverseEndian);
     }
     return res;
+}
+
+void writeColor16(const color16 &color, std::ostream &stream, bool reverseEndian) {
+    for (auto colval: color) {
+        writeNumber(colval, stream, reverseEndian);
+    }
 }
 
 color8 toColor8(const color16 &color) {

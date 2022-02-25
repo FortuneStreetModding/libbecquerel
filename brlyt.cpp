@@ -10,7 +10,10 @@ void Lyt1::read(std::istream &stream, bool revEndian) {
 }
 
 void Lyt1::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    writeNumber(drawFromCenter, stream, revEndian);
+    stream.write("\0\0\0", 3);
+    writeNumber(width, stream, revEndian);
+    writeNumber(height, stream, revEndian);
 }
 
 void TexCoordGenEntry::read(std::istream &stream, bool revEndian) {
@@ -21,7 +24,10 @@ void TexCoordGenEntry::read(std::istream &stream, bool revEndian) {
 }
 
 void TexCoordGenEntry::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    writeNumber((std::uint8_t)type, stream, revEndian);
+    writeNumber((std::uint8_t)source, stream, revEndian);
+    writeNumber((std::uint8_t)matrixSource, stream, revEndian);
+    writeNumber((std::uint8_t)unknown, stream, revEndian);
 }
 
 void ChanCtrl::read(std::istream &stream, bool revEndian) {
@@ -32,7 +38,10 @@ void ChanCtrl::read(std::istream &stream, bool revEndian) {
 }
 
 void ChanCtrl::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    writeNumber(colorMatSource, stream, revEndian);
+    writeNumber(alphaMatSource, stream, revEndian);
+    writeNumber(unknown1, stream, revEndian);
+    writeNumber(unknown2, stream, revEndian);
 }
 
 void SwapMode::read(std::istream &stream, bool revEndian) {
@@ -44,7 +53,8 @@ void SwapMode::read(std::istream &stream, bool revEndian) {
 }
 
 void SwapMode::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    std::uint8_t val = r + (g << 2) + (b << 4) + (a << 6);
+    writeNumber(val, stream, revEndian);
 }
 
 void TevSwapModeTable::read(std::istream &stream, bool revEndian) {
@@ -54,7 +64,9 @@ void TevSwapModeTable::read(std::istream &stream, bool revEndian) {
 }
 
 void TevSwapModeTable::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    for (auto &swapMode: swapModes) {
+        swapMode.write(stream, revEndian);
+    }
 }
 
 void IndirectStage::read(std::istream &stream, bool revEndian) {
@@ -65,7 +77,10 @@ void IndirectStage::read(std::istream &stream, bool revEndian) {
 }
 
 void IndirectStage::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    writeNumber(texCoord, stream, revEndian);
+    writeNumber(texMap, stream, revEndian);
+    writeNumber(scaleS, stream, revEndian);
+    writeNumber(scaleT, stream, revEndian);
 }
 
 void TextureRef::read(std::istream &stream, bool revEndian) {
@@ -76,7 +91,9 @@ void TextureRef::read(std::istream &stream, bool revEndian) {
 }
 
 void TextureRef::write(std::ostream &stream, bool revEndian) {
-    // TODO implement
+    writeNumber(id, stream, revEndian);
+    writeNumber((std::uint8_t)wrapModeU, stream, revEndian);
+    writeNumber((std::uint8_t)wrapModeV, stream, revEndian);
 }
 
 void TevStage::read(std::istream &stream, bool revEndian) {
