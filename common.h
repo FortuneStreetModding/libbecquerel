@@ -407,18 +407,18 @@ class TemporarySeekO {
 template<class T>
 class BitField {
     T &theValue;
-    int theBitStart;
+    int internalBitStart;
     int theNumBits;
     public:
     BitField(T &value, int bitStart, int numBits)
-        : theValue(value), theBitStart(bitStart), theNumBits(numBits) {};
+        : theValue(value), internalBitStart(8 * sizeof(T) - (bitStart + numBits)), theNumBits(numBits) {};
     operator T() const {
-        return (theValue >> theBitStart) & ((T(1) << theNumBits) - 1);
+        return (theValue >> internalBitStart) & ((T(1) << theNumBits) - 1);
     };
     BitField<T> &operator=(T newBits) {
-        T mask = ((T(1) << theNumBits) - 1) << theBitStart;
+        T mask = ((T(1) << theNumBits) - 1) << internalBitStart;
         theValue &= ~mask;
-        theValue |= (newBits << theBitStart);
+        theValue |= (newBits << internalBitStart);
         return *this;
     };
     BitField<T> &operator=(const BitField<T> &other) = delete;
