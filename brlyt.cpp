@@ -383,7 +383,7 @@ void Txt1::write(std::ostream &stream, bool revEndian) {
     writeNumber((std::uint8_t)lineAlign, stream, revEndian);
     writeNumber(flagsTxt1, stream, revEndian);
     stream.put('\0');
-    writeNumber(std::uint32_t(24), stream, revEndian);
+    writeNumber(std::uint32_t(0x74), stream, revEndian);
     writeColor8(fontTopColor, stream, revEndian);
     writeColor8(fontBottomColor, stream, revEndian);
     fontSize.write(stream, revEndian);
