@@ -7,5 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_library(becquerel brlan.cpp brlyt.cpp common.cpp)
 
-add_executable(bqtest test.cpp)
-target_link_libraries(bqtest PUBLIC becquerel)
+add_executable(lyttest lyttest.cpp)
+target_link_libraries(lyttest PUBLIC becquerel)
+add_executable(lantest lantest.cpp)
+target_link_libraries(lantest PUBLIC becquerel)

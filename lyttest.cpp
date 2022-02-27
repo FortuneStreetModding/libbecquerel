@@ -7,7 +7,7 @@ using namespace bq::brlyt;
 
 int main(int argc, char *argv[]) {
     if (argc < 3) {
-        cerr << "usage: bqtest [filename] [outfilename]" << endl;
+        cerr << "usage: lyttest [filename] [outfilename]" << endl;
         return 1;
     }
     std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> conv;
@@ -36,5 +36,8 @@ int main(int argc, char *argv[]) {
         }
     }
     #endif
+    
     brlyt.write(fs1);
+
+    return 0;
 }

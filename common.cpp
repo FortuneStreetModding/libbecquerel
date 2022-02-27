@@ -198,7 +198,7 @@ void PaiTagEntry::write(std::ostream &stream, bool revEndian) {
     writeNumber((std::uint16_t)keyFrames.size(), stream, revEndian);
     stream.put('\0');
     stream.put('\0');
-    writeNumber(std::uint16_t(0x0c), stream, revEndian);
+    writeNumber(std::uint32_t(0x0c), stream, revEndian);
     for (auto &keyFrame: keyFrames) {
         keyFrame.write(stream, revEndian, curveType);
     }
