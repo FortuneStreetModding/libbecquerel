@@ -275,7 +275,7 @@ struct Grp1 : GroupPane {
     void write(std::ostream &stream, bool revEndian);
 };
 
-struct BrlytHeader : BaseHeader {
+struct Brlyt : BaseHeader {
     static inline const std::string MAGIC = "RLYT";
     std::uint16_t bom;
     std::uint16_t headerSize;
@@ -283,12 +283,6 @@ struct BrlytHeader : BaseHeader {
     Txl1<true> txl1;
     Mat1 mat1;
     Fnl1<true> fnl1;
-    void read(std::istream &stream);
-    void write(std::ostream &stream);
-};
-
-struct Brlyt {
-    BrlytHeader header;
     void read(std::istream &stream);
     void write(std::ostream &stream);
 };

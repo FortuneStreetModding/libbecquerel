@@ -167,7 +167,106 @@ void Pai1::write(std::ostream &stream, bool revEndian) {
     stream.put('\0');
     writeNumber((std::uint16_t)textures.size(), stream, revEndian);
     writeNumber((std::uint16_t)entries.size(), stream, revEndian);
-    // TODO add more stuff
+    auto entryOffsetTblPos = stream.tellp();
+    writeNumber(std::uint32_t(0), stream, revEndian);
+
+    // write texture offsets and strings
+    auto offStart = stream.tellp();
+    for (int i=0; i<textures.size() * sizeof(std::uint32_t); ++i) {
+        stream.put('\0');
+    }
+    auto pos2 = stream.tellp();
+    stream.seekp(offStart);
+    for (auto &tex: textures) {
+        writeNumber(std::uint32_t(pos2 - startPos), stream, revEndian);
+        {
+            TemporarySeekO ts(stream, pos2);
+            writeNullTerminatedStr(tex, stream);
+            pos2 = stream.tellp();
+        }
+    }
+
+    stream.seekp(pos2); // seek to end of allocated textures
+    alignFile(stream);
+
+    // write entries
+    offStart = stream.tellp();
+    {
+        TemporarySeekO ts(stream, entryOffsetTblPos);
+        // write entry offset position
+        writeNumber(std::uint32_t(offStart - startPos), stream, revEndian);
+    }
+    for (int i=0; i<entries.size() * sizeof(std::uint32_t); ++i) {
+        stream.put('\0');
+    }
+    pos2 = stream.tellp();
+    stream.seekp(offStart);
+    for (auto &entry: entries) {
+        writeNumber(std::uint32_t(pos2 - startPos), stream, revEndian);
+        {
+            TemporarySeekO ts(stream, pos2);
+            entry.write(stream, revEndian);
+            pos2 = stream.tellp();
+        }
+    }
+
+    stream.seekp(pos2); // seek to end of allocated entries
+}
+
+void Brlan::read(std::istream &stream) {
+    auto magic = readFixedStr(stream, 4);
+    bool reverseEndian;
+    if (magic != MAGIC) {
+        // TODO throw exception here
+    }
+    bom = readNumber<std::uint16_t>(stream, false);
+    reverseEndian = (bom != 0xfeff);
+    version = readNumber<std::uint16_t>(stream, reverseEndian);
+    auto fileSize = readNumber<std::uint32_t>(stream, reverseEndian);
+    headerSize = readNumber<std::uint16_t>(stream, reverseEndian);
+    auto sectionCount = readNumber<std::uint16_t>(stream, reverseEndian);
+
+    stream.seekg(headerSize);
+
+    for (int i=0; i<sectionCount; ++i) {
+        auto pos = stream.tellg();
+
+        auto sectionHeader = readFixedStr(stream, 4);
+        auto sectionSize = readNumber<std::uint32_t>(stream, reverseEndian);
+
+        if (sectionHeader == Pat1::MAGIC) {
+            animationTag.read(stream, reverseEndian);
+        } else if (sectionHeader == Pai1::MAGIC) {
+            animationInfo.read(stream, reverseEndian);
+        }
+
+        stream.seekg(pos + std::streamoff(sectionSize));
+    }
+}
+
+void Brlan::write(std::ostream &stream) {
+    writeFixedStr(MAGIC, stream, 4);
+    bool reverseEndian = (bom != 0xfeff);
+    writeNumber(bom, stream, false);
+    writeNumber((std::uint16_t)version, stream, reverseEndian);
+    auto fileSizePos = stream.tellp();
+    writeNumber(std::uint32_t(0), stream, reverseEndian);
+    // header size
+    writeNumber(std::uint16_t(stream.tellp() + std::streamoff(4)), stream, reverseEndian);
+    // section count
+    writeNumber(std::uint16_t(2), stream, reverseEndian);
+
+    writeSection(Pat1::MAGIC, animationTag, stream, reverseEndian);
+    writeSection(Pai1::MAGIC, animationInfo, stream, reverseEndian);
+
+    alignFile(stream);
+
+    auto fileEnd = stream.tellp();
+
+    {
+        TemporarySeekO ts(stream, fileSizePos);
+        writeNumber((std::uint32_t)fileEnd, stream, reverseEndian);
+    }
 }
 
 }

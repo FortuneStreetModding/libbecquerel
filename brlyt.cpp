@@ -505,14 +505,6 @@ void Grp1::write(std::ostream &stream, bool revEndian) {
     }
 }
 
-void Brlyt::read(std::istream &stream) {
-    header.read(stream);
-}
-
-void Brlyt::write(std::ostream &stream) {
-    header.write(stream);
-}
-
 template<class T>
 static void setPane(std::shared_ptr<T> pane, std::shared_ptr<T> parentPane) {
     if (parentPane) {
@@ -521,7 +513,7 @@ static void setPane(std::shared_ptr<T> pane, std::shared_ptr<T> parentPane) {
     }
 }
 
-void BrlytHeader::read(std::istream &stream) {
+void Brlyt::read(std::istream &stream) {
     auto magic = readFixedStr(stream, 4);
     bool reverseEndian;
     if (magic != MAGIC) {
@@ -625,7 +617,7 @@ void writePanes(Pane &pane, std::ostream &stream, bool revEndian, const std::str
     }
 }
 
-void BrlytHeader::write(std::ostream &stream) {
+void Brlyt::write(std::ostream &stream) {
     writeFixedStr(MAGIC, stream, 4);
     bool reverseEndian = (bom != 0xfeff);
     writeNumber(bom, stream, false);
