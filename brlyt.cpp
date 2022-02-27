@@ -383,7 +383,7 @@ void Txt1::write(std::ostream &stream, bool revEndian) {
     writeNumber((std::uint8_t)lineAlign, stream, revEndian);
     writeNumber(flagsTxt1, stream, revEndian);
     stream.put('\0');
-    writeNumber(UINT32_C(24), stream, revEndian);
+    writeNumber(std::uint32_t(24), stream, revEndian);
     writeColor8(fontTopColor, stream, revEndian);
     writeColor8(fontBottomColor, stream, revEndian);
     fontSize.write(stream, revEndian);
@@ -439,7 +439,7 @@ void Wnd1::read(std::istream &stream, bool revEndian) {
 
 void Wnd1::write(std::ostream &stream, bool revEndian) {
     Pan1::write(stream, revEndian);
-    auto pos = stream.tellp();
+    auto pos = stream.tellp() - std::streamoff(0x4c);
     writeNumber(stretchLeft, stream, revEndian);
     writeNumber(stretchRight, stream, revEndian);
     writeNumber(stretchTop, stream, revEndian);
@@ -467,7 +467,7 @@ void Wnd1::write(std::ostream &stream, bool revEndian) {
     stream.seekp(pos2);
     auto frameOffStartPos = stream.tellp();
     for (int i=0; i<frames.size(); ++i) {
-        writeNumber(UINT32_C(0), stream, revEndian);
+        writeNumber(std::uint32_t(0), stream, revEndian);
     }
     auto pos3 = stream.tellp();
     stream.seekp(frameOffStartPos);
@@ -631,7 +631,7 @@ void BrlytHeader::write(std::ostream &stream) {
     writeNumber(bom, stream, false);
     writeNumber((std::uint16_t)version, stream, reverseEndian);
     auto fileSizePos = stream.tellp();
-    writeNumber(UINT32_C(0), stream, reverseEndian);
+    writeNumber(std::uint32_t(0), stream, reverseEndian);
     // header size
     writeNumber(std::uint16_t(stream.tellp() + std::streamoff(4)), stream, reverseEndian);
     auto sectionCountPos = stream.tellp();

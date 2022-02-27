@@ -374,6 +374,60 @@ struct BaseMaterial {
     std::vector<ProjectionTexGenParam> projTexGenParams;
 };
 
+struct BasePat1 : Section {
+    std::string name;
+    std::vector<std::string> groups;
+    std::int16_t startFrame;
+    std::int16_t endFrame;
+    std::uint16_t animationOrder;
+    bool childBinding;
+};
+
+enum CurveType : std::uint8_t {
+    Constant, Step, Hermite
+};
+
+struct KeyFrame {
+    float frame;
+    float value;
+    float slope;
+    void read(std::istream &stream, bool revEndian, CurveType curveType);
+    void write(std::ostream &stream, bool revEndian, CurveType curveType);
+};
+
+struct PaiTagEntry {
+    std::uint8_t index;
+    std::uint8_t target;
+    CurveType curveType;
+    std::vector<KeyFrame> keyFrames;
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
+};
+
+struct BasePaiTag {
+    std::string tag;
+    std::vector<PaiTagEntry> tagEntries;
+};
+
+enum AnimationTarget : std::uint8_t {
+    Pane = 0, Material = 1
+};
+
+template<class TagType>
+struct BasePaiEntry {
+    std::string name;
+    AnimationTarget target;
+    std::vector<TagType> tags;
+};
+
+template<class EntryType>
+struct BasePai1 : Section {
+    std::uint16_t frameSize;
+    bool loop;
+    std::vector<std::string> textures;
+    std::vector<EntryType> entries;
+};
+
 template<class IO>
 class TemporarySeekI {
     public:

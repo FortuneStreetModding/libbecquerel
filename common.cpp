@@ -149,6 +149,61 @@ void BlendMode::write(std::ostream &stream, bool revEndian) {
     writeNumber((std::uint8_t)logicOp, stream, revEndian);
 }
 
+void KeyFrame::read(std::istream &stream, bool revEndian, CurveType curveType) {
+    if (curveType == CurveType::Hermite) {
+        frame = readNumber<float>(stream, revEndian);
+        value = readNumber<float>(stream, revEndian);
+        slope = readNumber<float>(stream, revEndian);
+    } else {
+        frame = readNumber<float>(stream, revEndian);
+        value = readNumber<std::uint16_t>(stream, revEndian);
+        stream.seekg(2, std::ios::cur);
+    }
+}
+
+void KeyFrame::write(std::ostream &stream, bool revEndian, CurveType curveType) {
+    if (curveType == CurveType::Hermite) {
+        writeNumber(frame, stream, revEndian);
+        writeNumber(value, stream, revEndian);
+        writeNumber(slope, stream, revEndian);
+    } else {
+        writeNumber(frame, stream, revEndian);
+        writeNumber((std::uint16_t)value, stream, revEndian);
+        stream.put('\0');
+        stream.put('\0');
+    }
+}
+
+void PaiTagEntry::read(std::istream &stream, bool revEndian) {
+    auto pos = stream.tellg();
+    index = readNumber<std::uint8_t>(stream, revEndian);
+    target = readNumber<std::uint8_t>(stream, revEndian);
+    curveType = (CurveType)readNumber<std::uint8_t>(stream, revEndian);
+    stream.seekg(1, std::ios::cur);
+    auto keyFrameCount = readNumber<std::uint16_t>(stream, revEndian);
+    stream.seekg(2, std::ios::cur);
+    auto keyFrameOff = readNumber<std::uint32_t>(stream, revEndian);
+    stream.seekg(pos + std::streamoff(keyFrameOff));
+    keyFrames.resize(keyFrameCount);
+    for (auto &keyFrame: keyFrames) {
+        keyFrame.read(stream, revEndian, curveType);
+    }
+}
+
+void PaiTagEntry::write(std::ostream &stream, bool revEndian) {
+    writeNumber(index, stream, revEndian);
+    writeNumber(target, stream, revEndian);
+    writeNumber((std::uint8_t)curveType, stream, revEndian);
+    stream.put('\0');
+    writeNumber((std::uint16_t)keyFrames.size(), stream, revEndian);
+    stream.put('\0');
+    stream.put('\0');
+    writeNumber(std::uint16_t(0x0c), stream, revEndian);
+    for (auto &keyFrame: keyFrames) {
+        keyFrame.write(stream, revEndian, curveType);
+    }
+}
+
 std::string readFixedStr(std::istream &stream, int len) {
     std::string res(len, '\0');
     stream.read(res.data(), len);
@@ -235,10 +290,9 @@ color16 toColor16(const color8 &color) {
 
 void writeSection(const std::string &magic, Section &sec, std::ostream &stream, bool revEndian) {
     auto startPos = stream.tellp();
-    //std::cout << magic << " " << std::hex << startPos << std::endl; // TODO remove debug
     writeFixedStr(magic, stream, 4);
     auto sectionSizePos = stream.tellp();
-    writeNumber(UINT32_C(0), stream, revEndian);
+    writeNumber(std::uint32_t(0), stream, revEndian);
     sec.write(stream, revEndian);
     alignFile(stream);
     auto endPos = stream.tellp();
