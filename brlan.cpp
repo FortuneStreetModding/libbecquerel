@@ -2,7 +2,8 @@
 
 namespace bq::brlan {
 
-void Pat1::read(std::istream &stream, bool revEndian) {
+void Pat1::read(std::istream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
     auto startPos = stream.tellg() - std::streamoff(8);
     animationOrder = readNumber<std::uint16_t>(stream, revEndian);
     auto groupCount = readNumber<std::uint16_t>(stream, revEndian);
@@ -22,7 +23,8 @@ void Pat1::read(std::istream &stream, bool revEndian) {
     }
 }
 
-void Pat1::write(std::ostream &stream, bool revEndian) {
+void Pat1::write(std::ostream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
     auto startPos = stream.tellp() - std::streamoff(8);
     writeNumber(animationOrder, stream, revEndian);
     writeNumber((std::uint16_t)groups.size(), stream, revEndian);
@@ -134,7 +136,8 @@ void PaiEntry::write(std::ostream &stream, bool revEndian) {
     stream.seekp(pos2); // seek to end of allocated stuff
 }
 
-void Pai1::read(std::istream &stream, bool revEndian) {
+void Pai1::read(std::istream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
     auto startPos = stream.tellg() - std::streamoff(8);
     frameSize = readNumber<std::uint16_t>(stream, revEndian);
     loop = readNumber<std::uint8_t>(stream, revEndian);
@@ -160,7 +163,8 @@ void Pai1::read(std::istream &stream, bool revEndian) {
     }
 }
 
-void Pai1::write(std::ostream &stream, bool revEndian) {
+void Pai1::write(std::ostream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
     auto startPos = stream.tellp() - std::streamoff(8);
     writeNumber(frameSize, stream, revEndian);
     writeNumber((std::uint8_t)loop, stream, revEndian);
@@ -220,7 +224,7 @@ void Brlan::read(std::istream &stream) {
         // TODO throw exception here
     }
     bom = readNumber<std::uint16_t>(stream, false);
-    reverseEndian = (bom != 0xfeff);
+    reverseEndian = revEndian();
     version = readNumber<std::uint16_t>(stream, reverseEndian);
     auto fileSize = readNumber<std::uint32_t>(stream, reverseEndian);
     headerSize = readNumber<std::uint16_t>(stream, reverseEndian);
@@ -235,9 +239,9 @@ void Brlan::read(std::istream &stream) {
         auto sectionSize = readNumber<std::uint32_t>(stream, reverseEndian);
 
         if (sectionHeader == Pat1::MAGIC) {
-            animationTag.read(stream, reverseEndian);
+            animationTag.read(stream, *this);
         } else if (sectionHeader == Pai1::MAGIC) {
-            animationInfo.read(stream, reverseEndian);
+            animationInfo.read(stream, *this);
         }
 
         stream.seekg(pos + std::streamoff(sectionSize));
@@ -256,8 +260,8 @@ void Brlan::write(std::ostream &stream) {
     // section count
     writeNumber(std::uint16_t(2), stream, reverseEndian);
 
-    writeSection(Pat1::MAGIC, animationTag, stream, reverseEndian);
-    writeSection(Pai1::MAGIC, animationInfo, stream, reverseEndian);
+    writeSection(Pat1::MAGIC, animationTag, stream, *this);
+    writeSection(Pai1::MAGIC, animationInfo, stream, *this);
 
     alignFile(stream);
 

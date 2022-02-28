@@ -148,13 +148,15 @@ struct WindowFrame {
     void write(std::ostream &stream, bool revEndian);
 };
 
+struct BaseHeader;
+
 /**
  * @brief base class for sections in a layout file
  * 
  */
 struct Section {
-    virtual void read(std::istream &stream, bool revEndian);
-    virtual void write(std::ostream &stream, bool revEndian);
+    virtual void read(std::istream &stream, const BaseHeader &header);
+    virtual void write(std::ostream &stream, const BaseHeader &header);
     virtual ~Section();
 };
 
@@ -198,8 +200,11 @@ struct GroupPane : Section {
  */
 struct BaseHeader {
     unsigned version;
+    std::uint16_t bom;
+    std::uint16_t headerSize;
     std::shared_ptr<BasePane> rootPane;
     std::shared_ptr<GroupPane> rootGroup;
+    bool revEndian() const;
 };
 
 struct LayoutInfo : virtual Section {
@@ -213,8 +218,8 @@ template<bool padding>
 struct Txl1 : Section {
     static inline const std::string MAGIC = "txl1";
     std::vector<std::string> textures;
-    void read(std::istream &stream, bool revEndian);
-    void write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, const BaseHeader &header);
+    void write(std::ostream &stream, const BaseHeader &header);
 };
 
 template struct Txl1<true>;
@@ -223,8 +228,8 @@ template<bool padding>
 struct Fnl1 : Section {
     static inline const std::string MAGIC = "fnl1";
     std::vector<std::string> fonts;
-    void read(std::istream &stream, bool revEndian);
-    void write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, const BaseHeader &header);
+    void write(std::ostream &stream, const BaseHeader &header);
 };
 
 template struct Fnl1<true>;
@@ -478,7 +483,7 @@ class BitField {
     BitField<T> &operator=(const BitField<T> &other) = delete;
 };
 
-void writeSection(const std::string &magic, Section &sec, std::ostream &stream, bool revEndian);
+void writeSection(const std::string &magic, Section &sec, std::ostream &stream, const BaseHeader &header);
 
 void alignFile(std::ostream &stream);
 

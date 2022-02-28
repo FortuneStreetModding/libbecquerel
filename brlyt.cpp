@@ -2,14 +2,16 @@
 
 namespace bq::brlyt {
 
-void Lyt1::read(std::istream &stream, bool revEndian) {
+void Lyt1::read(std::istream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
     drawFromCenter = readNumber<std::uint8_t>(stream, revEndian);
     stream.seekg(3, std::ios::cur); // padding
     width = readNumber<float>(stream, revEndian);
     height = readNumber<float>(stream, revEndian);
 }
 
-void Lyt1::write(std::ostream &stream, bool revEndian) {
+void Lyt1::write(std::ostream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
     writeNumber(drawFromCenter, stream, revEndian);
     stream.write("\0\0\0", 3);
     writeNumber(width, stream, revEndian);
@@ -238,7 +240,8 @@ void Material::write(std::ostream &stream, bool revEndian) {
     }
 }
 
-void Mat1::read(std::istream &stream, bool revEndian) {
+void Mat1::read(std::istream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
     auto pos = stream.tellg();
     auto numMats = readNumber<std::uint16_t>(stream, revEndian);
     stream.seekg(2, std::ios::cur); // padding
@@ -252,7 +255,8 @@ void Mat1::read(std::istream &stream, bool revEndian) {
     }
 }
 
-void Mat1::write(std::ostream &stream, bool revEndian) {
+void Mat1::write(std::ostream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
     auto pos = stream.tellp() - std::streamoff(8);
     writeNumber((std::uint16_t)materials.size(), stream, revEndian);
     stream.put('\0');
@@ -277,7 +281,8 @@ void Mat1::write(std::ostream &stream, bool revEndian) {
     stream.seekp(pos2); // seek to end of allocated materials
 }
 
-void Pan1::read(std::istream &stream, bool revEndian) {
+void Pan1::read(std::istream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
     flags = readNumber<std::uint8_t>(stream, revEndian);
     auto origin = readNumber<std::uint8_t>(stream, revEndian);
     alpha = readNumber<std::uint8_t>(stream, revEndian);
@@ -293,7 +298,9 @@ void Pan1::read(std::istream &stream, bool revEndian) {
     originY = ORIGIN_Y_MAP[origin / 3];
 }
 
-void Pan1::write(std::ostream &stream, bool revEndian) {
+void Pan1::write(std::ostream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
+
     uint8_t originXIdx = std::find(ORIGIN_X_MAP.begin(), ORIGIN_X_MAP.end(), originX) - ORIGIN_X_MAP.begin();
     uint8_t originYIdx = std::find(ORIGIN_Y_MAP.begin(), ORIGIN_Y_MAP.end(), originY) - ORIGIN_Y_MAP.begin();
     uint8_t origin = originXIdx + 3*originYIdx;
@@ -315,8 +322,10 @@ std::string Pan1::signature() {
     return Pan1::MAGIC;
 }
 
-void Pic1::read(std::istream &stream, bool revEndian) {
-    Pan1::read(stream, revEndian);
+void Pic1::read(std::istream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
+
+    Pan1::read(stream, header);
     colorTopLeft = readColor8(stream, revEndian);
     colorTopRight = readColor8(stream, revEndian);
     colorBottomLeft = readColor8(stream, revEndian);
@@ -333,8 +342,10 @@ void Pic1::read(std::istream &stream, bool revEndian) {
     }
 }
 
-void Pic1::write(std::ostream &stream, bool revEndian) {
-    Pan1::write(stream, revEndian);
+void Pic1::write(std::ostream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
+
+    Pan1::write(stream, header);
     writeColor8(colorTopLeft, stream, revEndian);
     writeColor8(colorTopRight, stream, revEndian);
     writeColor8(colorBottomLeft, stream, revEndian);
@@ -354,8 +365,10 @@ std::string Pic1::signature() {
     return Pic1::MAGIC;
 }
 
-void Txt1::read(std::istream &stream, bool revEndian) {
-    Pan1::read(stream, revEndian);
+void Txt1::read(std::istream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
+
+    Pan1::read(stream, header);
     textLen = readNumber<std::uint16_t>(stream, revEndian);
     maxTextLen = readNumber<std::uint16_t>(stream, revEndian);
     materialIndex = readNumber<std::uint16_t>(stream, revEndian);
@@ -373,8 +386,10 @@ void Txt1::read(std::istream &stream, bool revEndian) {
     text = readNullTerminatedStrU16(stream, revEndian);
 }
 
-void Txt1::write(std::ostream &stream, bool revEndian) {
-    Pan1::write(stream, revEndian);
+void Txt1::write(std::ostream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
+
+    Pan1::write(stream, header);
     writeNumber(textLen, stream, revEndian);
     writeNumber(maxTextLen, stream, revEndian);
     writeNumber(materialIndex, stream, revEndian);
@@ -396,20 +411,22 @@ std::string Txt1::signature() {
     return Txt1::MAGIC;
 }
 
-void Bnd1::read(std::istream &stream, bool revEndian) {
-    Pan1::read(stream, revEndian);
+void Bnd1::read(std::istream &stream, const BaseHeader &header) {
+    Pan1::read(stream, header);
 }
 
-void Bnd1::write(std::ostream &stream, bool revEndian) {
-    Pan1::write(stream, revEndian);
+void Bnd1::write(std::ostream &stream, const BaseHeader &header) {
+    Pan1::write(stream, header);
 }
 
 std::string Bnd1::signature() {
     return Bnd1::MAGIC;
 }
 
-void Wnd1::read(std::istream &stream, bool revEndian) {
-    Pan1::read(stream, revEndian);
+void Wnd1::read(std::istream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
+
+    Pan1::read(stream, header);
     auto pos = stream.tellg() - std::streamoff(0x4c);
     stretchLeft = readNumber<std::uint16_t>(stream, revEndian);
     stretchRight = readNumber<std::uint16_t>(stream, revEndian);
@@ -437,8 +454,10 @@ void Wnd1::read(std::istream &stream, bool revEndian) {
     }
 }
 
-void Wnd1::write(std::ostream &stream, bool revEndian) {
-    Pan1::write(stream, revEndian);
+void Wnd1::write(std::ostream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
+
+    Pan1::write(stream, header);
     auto pos = stream.tellp() - std::streamoff(0x4c);
     writeNumber(stretchLeft, stream, revEndian);
     writeNumber(stretchRight, stream, revEndian);
@@ -486,7 +505,8 @@ std::string Wnd1::signature() {
     return Wnd1::MAGIC;
 }
 
-void Grp1::read(std::istream &stream, bool revEndian) {
+void Grp1::read(std::istream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
     name = readFixedStr(stream, 0x10);
     auto numNodes = readNumber<std::uint16_t>(stream, revEndian);
     stream.seekg(2, std::ios::cur);
@@ -495,7 +515,8 @@ void Grp1::read(std::istream &stream, bool revEndian) {
     }
 }
 
-void Grp1::write(std::ostream &stream, bool revEndian) {
+void Grp1::write(std::ostream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
     writeFixedStr(name, stream, 0x10);
     writeNumber((std::uint16_t)panes.size(), stream, revEndian);
     stream.put('\0');
@@ -520,7 +541,7 @@ void Brlyt::read(std::istream &stream) {
         // TODO throw exception here
     }
     bom = readNumber<std::uint16_t>(stream, false);
-    reverseEndian = (bom != 0xfeff);
+    reverseEndian = revEndian();
     version = readNumber<std::uint16_t>(stream, reverseEndian);
     auto fileSize = readNumber<std::uint32_t>(stream, reverseEndian);
     headerSize = readNumber<std::uint16_t>(stream, reverseEndian);
@@ -540,13 +561,13 @@ void Brlyt::read(std::istream &stream) {
         bool addPane = false;
         
         if (sectionHeader == Lyt1::MAGIC) {
-            lyt1.read(stream, reverseEndian);
+            lyt1.read(stream, *this);
         } else if (sectionHeader == Txl1<true>::MAGIC) {
-            txl1.read(stream, reverseEndian);
+            txl1.read(stream, *this);
         } else if (sectionHeader == Fnl1<true>::MAGIC) {
-            fnl1.read(stream, reverseEndian);
+            fnl1.read(stream, *this);
         } else if (sectionHeader == Mat1::MAGIC) {
-            mat1.read(stream, reverseEndian);
+            mat1.read(stream, *this);
         } else if (sectionHeader == Pan1::MAGIC) {
             curPane = std::make_shared<Pan1>();
             addPane = true;
@@ -571,7 +592,7 @@ void Brlyt::read(std::istream &stream) {
             parentPane = curPane->parent.lock();
         } else if (sectionHeader == Grp1::MAGIC) {
             curGroupPane = std::make_shared<Grp1>();
-            curGroupPane->read(stream, reverseEndian);
+            curGroupPane->read(stream, *this);
             setPane(curGroupPane, parentGroupPane);
         } else if (sectionHeader == "grs1") {
             if (curGroupPane) {
@@ -585,7 +606,7 @@ void Brlyt::read(std::istream &stream) {
         }
 
         if (addPane) {
-            curPane->read(stream, reverseEndian);
+            curPane->read(stream, *this);
             setPane(curPane, parentPane);
         }
 
@@ -602,24 +623,24 @@ void Brlyt::read(std::istream &stream) {
 }
 
 template<class Pane, class SecCount>
-void writePanes(Pane &pane, std::ostream &stream, bool revEndian, const std::string &startTag, const std::string &endTag, SecCount &secCount) {
-    writeSection(pane.signature(), pane, stream, revEndian);
+static void writePanes(Pane &pane, std::ostream &stream, const BaseHeader &header, const std::string &startTag, const std::string &endTag, SecCount &secCount) {
+    writeSection(pane.signature(), pane, stream, header);
     ++secCount;
 
     if (!pane.children.empty()) {
         secCount += 2;
         Section nullSec;
-        writeSection(startTag, nullSec, stream, revEndian);
+        writeSection(startTag, nullSec, stream, header);
         for (auto &child: pane.children) {
-            writePanes(*child, stream, revEndian, startTag, endTag, secCount);
+            writePanes(*child, stream, header, startTag, endTag, secCount);
         }
-        writeSection(endTag, nullSec, stream, revEndian);
+        writeSection(endTag, nullSec, stream, header);
     }
 }
 
 void Brlyt::write(std::ostream &stream) {
     writeFixedStr(MAGIC, stream, 4);
-    bool reverseEndian = (bom != 0xfeff);
+    bool reverseEndian = revEndian();
     writeNumber(bom, stream, false);
     writeNumber((std::uint16_t)version, stream, reverseEndian);
     auto fileSizePos = stream.tellp();
@@ -632,25 +653,25 @@ void Brlyt::write(std::ostream &stream) {
 
     uint16_t sectionCount = 1;
 
-    writeSection(Lyt1::MAGIC, lyt1, stream, reverseEndian);
+    writeSection(Lyt1::MAGIC, lyt1, stream, *this);
     if (!txl1.textures.empty()) {
-        writeSection(Txl1<true>::MAGIC, txl1, stream, reverseEndian);
+        writeSection(Txl1<true>::MAGIC, txl1, stream, *this);
         ++sectionCount;
     }
     if (!fnl1.fonts.empty()) {
-        writeSection(Fnl1<true>::MAGIC, fnl1, stream, reverseEndian);
+        writeSection(Fnl1<true>::MAGIC, fnl1, stream, *this);
         ++sectionCount;
     }
     if (!mat1.materials.empty()) {
-        writeSection(Mat1::MAGIC, mat1, stream, reverseEndian);
+        writeSection(Mat1::MAGIC, mat1, stream, *this);
         ++sectionCount;
     }
 
     if (rootPane) {
-        writePanes(*rootPane, stream, reverseEndian, "pas1", "pae1", sectionCount);
+        writePanes(*rootPane, stream, *this, "pas1", "pae1", sectionCount);
     }
     if (rootGroup) {
-        writePanes(*rootGroup, stream, reverseEndian, "pas1", "pae1", sectionCount);
+        writePanes(*rootGroup, stream, *this, "pas1", "pae1", sectionCount);
     }
 
     {

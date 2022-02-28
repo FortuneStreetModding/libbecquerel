@@ -8,8 +8,8 @@ namespace bq::brlan {
 struct Pat1 : BasePat1 {
     static inline const std::string MAGIC = "pat1";
     std::string unknownData;
-    void read(std::istream &stream, bool revEndian);
-    void write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, const BaseHeader &header);
+    void write(std::ostream &stream, const BaseHeader &header);
 };
 
 struct PaiTag : BasePaiTag {
@@ -25,16 +25,14 @@ struct PaiEntry : BasePaiEntry<PaiTag> {
 
 struct Pai1 : BasePai1<PaiEntry> {
     static inline const std::string MAGIC = "pai1";
-    void read(std::istream &stream, bool revEndian);
-    void write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, const BaseHeader &header);
+    void write(std::ostream &stream, const BaseHeader &header);
 };
 
 struct Brlan : BaseHeader {
     static inline const std::string MAGIC = "RLAN";
     Pat1 animationTag;
     Pai1 animationInfo;
-    std::uint16_t bom;
-    std::uint16_t headerSize;
     void read(std::istream &stream);
     void write(std::ostream &stream);
 };

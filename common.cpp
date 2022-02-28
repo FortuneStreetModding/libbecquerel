@@ -3,10 +3,10 @@
 
 namespace bq {
 
-void Section::read(std::istream &stream, bool revEndian) {
+void Section::read(std::istream &stream, const BaseHeader &header) {
     // nothing to do
 }
-void Section::write(std::ostream &stream, bool revEndian) {
+void Section::write(std::ostream &stream, const BaseHeader &header) {
     // nothing to do
 }
 Section::~Section() = default;
@@ -60,6 +60,8 @@ std::string GroupPane::signature() {
     return GroupPane::MAGIC;
 }
 
+bool BaseHeader::revEndian() const { return bom != 0xfeff; }
+
 static std::vector<std::string> readStringList(std::istream &stream, bool revEndian, bool padding) {
     std::vector<std::string> result;
     auto count = readNumber<std::uint16_t>(stream, revEndian);
@@ -104,23 +106,23 @@ static void writeStringList(const std::vector<std::string> &list, std::ostream &
 }
 
 template<bool padding>
-void Txl1<padding>::read(std::istream &stream, bool revEndian) {
-    textures = readStringList(stream, revEndian, padding);
+void Txl1<padding>::read(std::istream &stream, const BaseHeader &header) {
+    textures = readStringList(stream, header.revEndian(), padding);
 }
 
 template<bool padding>
-void Txl1<padding>::write(std::ostream &stream, bool revEndian) {
-    writeStringList(textures, stream, revEndian, padding);
+void Txl1<padding>::write(std::ostream &stream, const BaseHeader &header) {
+    writeStringList(textures, stream, header.revEndian(), padding);
 }
 
 template<bool padding>
-void Fnl1<padding>::read(std::istream &stream, bool revEndian) {
-    fonts = readStringList(stream, revEndian, padding);
+void Fnl1<padding>::read(std::istream &stream, const BaseHeader &header) {
+    fonts = readStringList(stream, header.revEndian(), padding);
 }
 
 template<bool padding>
-void Fnl1<padding>::write(std::ostream &stream, bool revEndian) {
-    writeStringList(fonts, stream, revEndian, padding);
+void Fnl1<padding>::write(std::ostream &stream, const BaseHeader &header) {
+    writeStringList(fonts, stream, header.revEndian(), padding);
 }
 
 void TextureTransform::read(std::istream &stream, bool revEndian) {
@@ -288,12 +290,13 @@ color16 toColor16(const color8 &color) {
     return res;
 }
 
-void writeSection(const std::string &magic, Section &sec, std::ostream &stream, bool revEndian) {
+void writeSection(const std::string &magic, Section &sec, std::ostream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
     auto startPos = stream.tellp();
     writeFixedStr(magic, stream, 4);
     auto sectionSizePos = stream.tellp();
     writeNumber(std::uint32_t(0), stream, revEndian);
-    sec.write(stream, revEndian);
+    sec.write(stream, header);
     alignFile(stream);
     auto endPos = stream.tellp();
     {

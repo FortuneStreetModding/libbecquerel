@@ -8,8 +8,8 @@ namespace bq::brlyt {
 
 struct Lyt1 : LayoutInfo {
     static inline const std::string MAGIC = "lyt1";
-    void read(std::istream &stream, bool revEndian);
-    void write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, const BaseHeader &header);
+    void write(std::ostream &stream, const BaseHeader &header);
 };
 
 enum class TexCoordGenTypes {
@@ -197,8 +197,8 @@ struct Material : BaseMaterial<TextureRef, TevStage, AlphaCompare> {
 struct Mat1 : Section {
     static inline const std::string MAGIC = "mat1";
     std::vector<Material> materials;
-    void read(std::istream &stream, bool revEndian);
-    void write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, const BaseHeader &header);
+    void write(std::ostream &stream, const BaseHeader &header);
 };
 
 struct Pan1 : BasePane {
@@ -206,8 +206,8 @@ struct Pan1 : BasePane {
     static inline const std::array<OriginX, 3> ORIGIN_X_MAP = {OriginX::LEFT, OriginX::CENTER, OriginX::RIGHT};
     static inline const std::array<OriginY, 3> ORIGIN_Y_MAP = {OriginY::TOP, OriginY::CENTER, OriginY::BOTTOM};
     std::uint8_t flags;
-    void read(std::istream &stream, bool revEndian);
-    void write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, const BaseHeader &header);
+    void write(std::ostream &stream, const BaseHeader &header);
     virtual std::string signature();
 };
 
@@ -219,8 +219,8 @@ struct Pic1 : Pan1 {
     color8 colorBottomLeft;
     color8 colorBottomRight;
     std::uint16_t materialIndex;
-    void read(std::istream &stream, bool revEndian);
-    void write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, const BaseHeader &header);
+    void write(std::ostream &stream, const BaseHeader &header);
     virtual std::string signature();
 };
 
@@ -240,15 +240,15 @@ struct Txt1 : Pan1 {
     float lineSpace;
     std::u16string text;
     std::uint8_t flagsTxt1;
-    void read(std::istream &stream, bool revEndian);
-    void write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, const BaseHeader &header);
+    void write(std::ostream &stream, const BaseHeader &header);
     virtual std::string signature();
 };
 
 struct Bnd1 : Pan1 {
     static inline const std::string MAGIC = "bnd1";
-    void read(std::istream &stream, bool revEndian);
-    void write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, const BaseHeader &header);
+    void write(std::ostream &stream, const BaseHeader &header);
     virtual std::string signature();
 };
 
@@ -265,20 +265,18 @@ struct Wnd1 : Pan1 {
     std::uint8_t flagsWnd1;
     WindowContent content;
     std::vector<WindowFrame> frames;
-    void read(std::istream &stream, bool revEndian);
-    void write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, const BaseHeader &header);
+    void write(std::ostream &stream, const BaseHeader &header);
     virtual std::string signature();
 };
 
 struct Grp1 : GroupPane {
-    void read(std::istream &stream, bool revEndian);
-    void write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, const BaseHeader &header);
+    void write(std::ostream &stream, const BaseHeader &header);
 };
 
 struct Brlyt : BaseHeader {
     static inline const std::string MAGIC = "RLYT";
-    std::uint16_t bom;
-    std::uint16_t headerSize;
     Lyt1 lyt1;
     Txl1<true> txl1;
     Mat1 mat1;
