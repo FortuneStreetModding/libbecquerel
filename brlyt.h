@@ -145,8 +145,8 @@ struct IndirectStage {
 };
 
 struct TextureRef : BaseTextureRef {
-    void read(std::istream &stream, bool revEndian);
-    void write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, const BaseHeader &header);
+    void write(std::ostream &stream, const BaseHeader &header);
 };
 
 struct TevStage : BaseTevStage {
@@ -190,13 +190,13 @@ struct Material : BaseMaterial<TextureRef, TevStage, AlphaCompare> {
     BitField<std::uint32_t> texCoordGenCount = BitField(flags, 20, 4);
     BitField<std::uint32_t> mtxCount = BitField(flags, 24, 4);
     BitField<std::uint32_t> texCount = BitField(flags, 28, 4);
-    void read(std::istream &stream, bool revEndian);
-    void write(std::ostream &stream, bool revEndian);
+    void read(std::istream &stream, const BaseHeader &header);
+    void write(std::ostream &stream, const BaseHeader &header);
 };
 
 struct Mat1 : Section {
     static inline const std::string MAGIC = "mat1";
-    std::vector<Material> materials;
+    std::vector<std::shared_ptr<Material>> materials;
     void read(std::istream &stream, const BaseHeader &header);
     void write(std::ostream &stream, const BaseHeader &header);
 };
@@ -218,7 +218,7 @@ struct Pic1 : Pan1 {
     color8 colorTopRight;
     color8 colorBottomLeft;
     color8 colorBottomRight;
-    std::uint16_t materialIndex;
+    std::shared_ptr<Material> material;
     void read(std::istream &stream, const BaseHeader &header);
     void write(std::ostream &stream, const BaseHeader &header);
     virtual std::string signature();
@@ -228,8 +228,8 @@ struct Txt1 : Pan1 {
     static inline const std::string MAGIC = "txt1";
     std::uint16_t textLen;
     std::uint16_t maxTextLen;
-    std::uint16_t materialIndex;
-    std::uint16_t fontIndex;
+    std::shared_ptr<Material> material;
+    std::string font;
     std::uint8_t textAlign;
     LineAlign lineAlign;
     float italicTilt;
@@ -250,6 +250,16 @@ struct Bnd1 : Pan1 {
     void read(std::istream &stream, const BaseHeader &header);
     void write(std::ostream &stream, const BaseHeader &header);
     virtual std::string signature();
+};
+
+struct WindowContent : BaseWindowContent<Material> {
+    void read(std::istream &stream, const BaseHeader &header);
+    void write(std::ostream &stream, const BaseHeader &header);
+};
+
+struct WindowFrame : BaseWindowFrame<Material> {
+    void read(std::istream &stream, const BaseHeader &header);
+    void write(std::ostream &stream, const BaseHeader &header);
 };
 
 struct Wnd1 : Pan1 {

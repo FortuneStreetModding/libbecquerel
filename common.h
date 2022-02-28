@@ -121,15 +121,14 @@ enum class WindowKind {
     HorizontalNoContent = 2
 };
 
-struct WindowContent {
+template<class Material>
+struct BaseWindowContent {
     color8 colorTopLeft;
     color8 colorTopRight;
     color8 colorBottomLeft;
     color8 colorBottomRight;
-    std::uint16_t materialIndex;
+    std::shared_ptr<Material> material;
     std::vector<TexCoord> texCoords;
-    void read(std::istream &stream, bool revEndian);
-    void write(std::ostream &stream, bool revEndian);
 };
 
 enum WindowFrameTexFlip : std::uint8_t {
@@ -141,11 +140,10 @@ enum WindowFrameTexFlip : std::uint8_t {
     Rotate270 = 5
 };
 
-struct WindowFrame {
-    std::uint16_t materialIndex;
+template<class Material>
+struct BaseWindowFrame {
+    std::shared_ptr<Material> material;
     WindowFrameTexFlip texFlip;
-    void read(std::istream &stream, bool revEndian);
-    void write(std::ostream &stream, bool revEndian);
 };
 
 struct BaseHeader;
@@ -309,7 +307,6 @@ enum class FilterMode {
 };
 
 struct BaseTextureRef {
-    std::uint16_t id;
     std::string name;
     WrapMode wrapModeU;
     WrapMode wrapModeV;

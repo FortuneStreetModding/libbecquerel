@@ -11,51 +11,6 @@ void Section::write(std::ostream &stream, const BaseHeader &header) {
 }
 Section::~Section() = default;
 
-void WindowContent::read(std::istream &stream, bool revEndian) {
-    colorTopLeft = readColor8(stream, revEndian);
-    colorTopRight = readColor8(stream, revEndian);
-    colorBottomLeft = readColor8(stream, revEndian);
-    colorBottomRight = readColor8(stream, revEndian);
-    materialIndex = readNumber<std::uint16_t>(stream, revEndian);
-    auto uvCount = readNumber<std::uint8_t>(stream, revEndian);
-    stream.seekg(1, std::ios::cur);
-    texCoords.resize(uvCount);
-    for (auto &texCoord: texCoords) {
-        texCoord.topLeft.read(stream, revEndian);
-        texCoord.topRight.read(stream, revEndian);
-        texCoord.bottomLeft.read(stream, revEndian);
-        texCoord.bottomRight.read(stream, revEndian);
-    }
-}
-
-void WindowContent::write(std::ostream &stream, bool revEndian) {
-    writeColor8(colorTopLeft, stream, revEndian);
-    writeColor8(colorTopRight, stream, revEndian);
-    writeColor8(colorBottomLeft, stream, revEndian);
-    writeColor8(colorBottomRight, stream, revEndian);
-    writeNumber(materialIndex, stream, revEndian);
-    writeNumber((std::uint8_t)texCoords.size(), stream, revEndian);
-    stream.put('\0');
-    for (auto &texCoord: texCoords) {
-        texCoord.topLeft.write(stream, revEndian);
-        texCoord.topRight.write(stream, revEndian);
-        texCoord.bottomLeft.write(stream, revEndian);
-        texCoord.bottomRight.write(stream, revEndian);
-    } 
-}
-
-void WindowFrame::read(std::istream &stream, bool revEndian) {
-    materialIndex = readNumber<std::uint16_t>(stream, revEndian);
-    texFlip = (WindowFrameTexFlip)readNumber<std::uint8_t>(stream, revEndian);
-    stream.seekg(1, std::ios::cur);
-}
-
-void WindowFrame::write(std::ostream &stream, bool revEndian) {
-    writeNumber(materialIndex, stream, revEndian);
-    writeNumber((std::uint8_t)texFlip, stream, revEndian);
-    stream.put('\0');
-}
-
 std::string GroupPane::signature() {
     return GroupPane::MAGIC;
 }

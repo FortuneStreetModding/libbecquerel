@@ -85,14 +85,19 @@ void IndirectStage::write(std::ostream &stream, bool revEndian) {
     writeNumber(scaleT, stream, revEndian);
 }
 
-void TextureRef::read(std::istream &stream, bool revEndian) {
-    id = readNumber<std::uint16_t>(stream, revEndian);
+void TextureRef::read(std::istream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
+    auto id = readNumber<std::uint16_t>(stream, revEndian);
+    name = static_cast<const Brlyt &>(header).txl1.textures[id];
     wrapModeU = (WrapMode)readNumber<std::uint8_t>(stream, revEndian);
     wrapModeV = (WrapMode)readNumber<std::uint8_t>(stream, revEndian);
     filterModeMin = filterModeMax = FilterMode::Linear;
 }
 
-void TextureRef::write(std::ostream &stream, bool revEndian) {
+void TextureRef::write(std::ostream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
+    auto &textures = static_cast<const Brlyt &>(header).txl1.textures;
+    std::uint16_t id = std::find(textures.begin(), textures.end(), name) - textures.begin();
     writeNumber(id, stream, revEndian);
     writeNumber((std::uint8_t)wrapModeU, stream, revEndian);
     writeNumber((std::uint8_t)wrapModeV, stream, revEndian);
@@ -133,7 +138,9 @@ void AlphaCompare::write(std::ostream &stream, bool revEndian) {
     writeNumber(ref1, stream, revEndian);
 }
 
-void Material::read(std::istream &stream, bool revEndian) {
+void Material::read(std::istream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
+
     name = readFixedStr(stream, 0x14);
     blackColor = toColor8(readColor16(stream, revEndian));
     whiteColor = toColor8(readColor16(stream, revEndian));
@@ -144,7 +151,7 @@ void Material::read(std::istream &stream, bool revEndian) {
     flags = readNumber<std::uint32_t>(stream, revEndian);
     textureMaps.resize(texCount);
     for (auto &textureMap: textureMaps) {
-        textureMap.read(stream, revEndian);
+        textureMap.read(stream, header);
     }
     texTransforms.resize(mtxCount);
     for (auto &texTransform: texTransforms) {
@@ -183,8 +190,8 @@ void Material::read(std::istream &stream, bool revEndian) {
     }
 }
 
-void Material::write(std::ostream &stream, bool revEndian) {
-    //std::cout << "material: " << name << " " << std::hex << stream.tellp() << std::endl;
+void Material::write(std::ostream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
 
     writeFixedStr(name, stream, 0x14);
     writeColor16(toColor16(blackColor), stream, revEndian);
@@ -204,7 +211,7 @@ void Material::write(std::ostream &stream, bool revEndian) {
     writeNumber(flags, stream, revEndian);
 
     for (auto &textureMap: textureMaps) {
-        textureMap.write(stream, revEndian);
+        textureMap.write(stream, header);
     }
     for (auto &texTransform: texTransforms) {
         texTransform.write(stream, revEndian);
@@ -249,8 +256,8 @@ void Mat1::read(std::istream &stream, const BaseHeader &header) {
         auto off = readNumber<std::uint32_t>(stream, revEndian);
         {
             TemporarySeekI ts(stream, pos + std::streamoff(off - 8));
-            materials.emplace_back();
-            materials.back().read(stream, revEndian);
+            materials.push_back(std::make_shared<Material>());
+            materials.back()->read(stream, header);
         }
     }
 }
@@ -273,7 +280,7 @@ void Mat1::write(std::ostream &stream, const BaseHeader &header) {
 
         {
             TemporarySeekO ts(stream, pos2);
-            mat.write(stream, revEndian);
+            mat->write(stream, header);
             alignFile(stream);
             pos2 = stream.tellp();
         }
@@ -330,7 +337,8 @@ void Pic1::read(std::istream &stream, const BaseHeader &header) {
     colorTopRight = readColor8(stream, revEndian);
     colorBottomLeft = readColor8(stream, revEndian);
     colorBottomRight = readColor8(stream, revEndian);
-    materialIndex = readNumber<std::uint16_t>(stream, revEndian);
+    auto materialIndex = readNumber<std::uint16_t>(stream, revEndian);
+    material = static_cast<const Brlyt &>(header).mat1.materials[materialIndex];
     auto numUVs = readNumber<std::uint8_t>(stream, revEndian);
     stream.seekg(1, std::ios::cur);
     texCoords.resize(numUVs);
@@ -350,6 +358,8 @@ void Pic1::write(std::ostream &stream, const BaseHeader &header) {
     writeColor8(colorTopRight, stream, revEndian);
     writeColor8(colorBottomLeft, stream, revEndian);
     writeColor8(colorBottomRight, stream, revEndian);
+    auto &materials = static_cast<const Brlyt &>(header).mat1.materials;
+    std::uint16_t materialIndex = std::find(materials.begin(), materials.end(), material) - materials.begin();
     writeNumber(materialIndex, stream, revEndian);
     writeNumber((std::uint8_t)texCoords.size(), stream, revEndian);
     stream.put('\0');
@@ -371,8 +381,10 @@ void Txt1::read(std::istream &stream, const BaseHeader &header) {
     Pan1::read(stream, header);
     textLen = readNumber<std::uint16_t>(stream, revEndian);
     maxTextLen = readNumber<std::uint16_t>(stream, revEndian);
-    materialIndex = readNumber<std::uint16_t>(stream, revEndian);
-    fontIndex = readNumber<std::uint16_t>(stream, revEndian);
+    auto materialIndex = readNumber<std::uint16_t>(stream, revEndian);
+    material = static_cast<const Brlyt &>(header).mat1.materials[materialIndex];
+    auto fontIndex = readNumber<std::uint16_t>(stream, revEndian);
+    font = static_cast<const Brlyt &>(header).fnl1.fonts[fontIndex];
     textAlign = readNumber<std::uint8_t>(stream, revEndian);
     lineAlign = (LineAlign)readNumber<std::uint8_t>(stream, revEndian);
     flagsTxt1 = readNumber<std::uint8_t>(stream, revEndian);
@@ -392,7 +404,11 @@ void Txt1::write(std::ostream &stream, const BaseHeader &header) {
     Pan1::write(stream, header);
     writeNumber(textLen, stream, revEndian);
     writeNumber(maxTextLen, stream, revEndian);
+    auto &materials = static_cast<const Brlyt &>(header).mat1.materials;
+    std::uint16_t materialIndex = std::find(materials.begin(), materials.end(), material) - materials.begin();
     writeNumber(materialIndex, stream, revEndian);
+    auto &fonts = static_cast<const Brlyt &>(header).fnl1.fonts;
+    std::uint16_t fontIndex = std::find(fonts.begin(), fonts.end(), font) - fonts.begin();
     writeNumber(fontIndex, stream, revEndian);
     writeNumber(textAlign, stream, revEndian);
     writeNumber((std::uint8_t)lineAlign, stream, revEndian);
@@ -423,6 +439,61 @@ std::string Bnd1::signature() {
     return Bnd1::MAGIC;
 }
 
+void WindowContent::read(std::istream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
+    colorTopLeft = readColor8(stream, revEndian);
+    colorTopRight = readColor8(stream, revEndian);
+    colorBottomLeft = readColor8(stream, revEndian);
+    colorBottomRight = readColor8(stream, revEndian);
+    auto materialIndex = readNumber<std::uint16_t>(stream, revEndian);
+    material = static_cast<const Brlyt &>(header).mat1.materials[materialIndex];
+    auto uvCount = readNumber<std::uint8_t>(stream, revEndian);
+    stream.seekg(1, std::ios::cur);
+    texCoords.resize(uvCount);
+    for (auto &texCoord: texCoords) {
+        texCoord.topLeft.read(stream, revEndian);
+        texCoord.topRight.read(stream, revEndian);
+        texCoord.bottomLeft.read(stream, revEndian);
+        texCoord.bottomRight.read(stream, revEndian);
+    }
+}
+
+void WindowContent::write(std::ostream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
+    writeColor8(colorTopLeft, stream, revEndian);
+    writeColor8(colorTopRight, stream, revEndian);
+    writeColor8(colorBottomLeft, stream, revEndian);
+    writeColor8(colorBottomRight, stream, revEndian);
+    auto &materials = static_cast<const Brlyt &>(header).mat1.materials;
+    std::uint16_t materialIndex = std::find(materials.begin(), materials.end(), material) - materials.begin();
+    writeNumber(materialIndex, stream, revEndian);
+    writeNumber((std::uint8_t)texCoords.size(), stream, revEndian);
+    stream.put('\0');
+    for (auto &texCoord: texCoords) {
+        texCoord.topLeft.write(stream, revEndian);
+        texCoord.topRight.write(stream, revEndian);
+        texCoord.bottomLeft.write(stream, revEndian);
+        texCoord.bottomRight.write(stream, revEndian);
+    } 
+}
+
+void WindowFrame::read(std::istream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
+    auto materialIndex = readNumber<std::uint16_t>(stream, revEndian);
+    material = static_cast<const Brlyt &>(header).mat1.materials[materialIndex];
+    texFlip = (WindowFrameTexFlip)readNumber<std::uint8_t>(stream, revEndian);
+    stream.seekg(1, std::ios::cur);
+}
+
+void WindowFrame::write(std::ostream &stream, const BaseHeader &header) {
+    bool revEndian = header.revEndian();
+    auto &materials = static_cast<const Brlyt &>(header).mat1.materials;
+    std::uint16_t materialIndex = std::find(materials.begin(), materials.end(), material) - materials.begin();
+    writeNumber(materialIndex, stream, revEndian);
+    writeNumber((std::uint8_t)texFlip, stream, revEndian);
+    stream.put('\0');
+}
+
 void Wnd1::read(std::istream &stream, const BaseHeader &header) {
     bool revEndian = header.revEndian();
 
@@ -442,14 +513,14 @@ void Wnd1::read(std::istream &stream, const BaseHeader &header) {
     auto contentOffset = readNumber<std::uint32_t>(stream, revEndian);
     auto frameOffsetTbl = readNumber<std::uint32_t>(stream, revEndian);
     stream.seekg(pos + std::streamoff(contentOffset));
-    content.read(stream, revEndian);
+    content.read(stream, header);
     stream.seekg(pos + std::streamoff(frameOffsetTbl));
     frames.resize(frameCount);
     for (auto &frame: frames) {
         auto off = readNumber<std::uint32_t>(stream, revEndian);
         {
             TemporarySeekI ts(stream, pos + std::streamoff(off));
-            frame.read(stream, revEndian);
+            frame.read(stream, header);
         }
     }
 }
@@ -479,7 +550,7 @@ void Wnd1::write(std::ostream &stream, const BaseHeader &header) {
     writeNumber(std::uint32_t(pos2 - pos), stream, revEndian);
     {
         TemporarySeekO ts(stream, pos2);
-        content.write(stream, revEndian);
+        content.write(stream, header);
         pos2 = stream.tellp();
     }
     writeNumber(std::uint32_t(pos2 - pos), stream, revEndian);
@@ -494,7 +565,7 @@ void Wnd1::write(std::ostream &stream, const BaseHeader &header) {
         writeNumber(std::uint32_t(pos3 - pos), stream, revEndian);
         {
             TemporarySeekO ts1(stream, pos3);
-            frame.write(stream, revEndian);
+            frame.write(stream, header);
             pos3 = stream.tellp();
         }
     }

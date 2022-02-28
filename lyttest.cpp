@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
     cout << "lyt_height: " << lyt1.height << endl;
     auto &mat1 = brlyt.mat1;
     for (int i=0; i<mat1.materials.size(); ++i) {
-        cout << "material at " << i << ": " << mat1.materials[i].name << " (flag = " << hex << mat1.materials[i].flags << ")" << endl;
+        cout << "material at " << i << ": " << mat1.materials[i]->name << " (flag = " << hex << mat1.materials[i]->flags << ")" << endl;
     }
     #if 0
     for (auto &entry: brlyt.paneTable) {
