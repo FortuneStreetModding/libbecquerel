@@ -288,6 +288,101 @@ void Mat1::write(std::ostream &stream, const BaseHeader &header) {
     stream.seekp(pos2); // seek to end of allocated materials
 }
 
+#if 0
+void UsdEntry::read(std::istream &stream, bool revEndian) {
+    auto pos = stream.tellg();
+    auto nameOffset = readNumber<std::uint32_t>(stream, revEndian);
+    auto dataOffset = readNumber<std::uint32_t>(stream, revEndian);
+    auto numEntries = readNumber<std::uint16_t>(stream, revEndian);
+    UsdType entryType = (UsdType)readNumber<std::uint8_t>(stream, revEndian);
+    stream.seekg(1, std::ios::cur); // padding
+    {
+        TemporarySeekI ts(stream, pos + std::streamoff(nameOffset));
+        name = readNullTerminatedStr(stream);
+    }
+    {
+        TemporarySeekI ts(stream, pos + std::streamoff(dataOffset));
+        switch (entryType) {
+            case UsdType::String:
+            data = readFixedStr(stream, numEntries);
+            break;
+
+            case UsdType::Int32:
+            {
+                auto &intVec = data.emplace<std::vector<std::uint32_t>>();
+                for (int i=0; i<numEntries; ++i) {
+                    intVec.push_back(readNumber<std::uint32_t>(stream, revEndian));
+                }
+            }
+            break;
+
+            case UsdType::Float:
+            {
+                auto &floatVec = data.emplace<std::vector<float>>();
+                for (int i=0; i<numEntries; ++i) {
+                    floatVec.push_back(readNumber<float>(stream, revEndian));
+                }
+            }
+            break;
+        }
+    }
+}
+
+void UsdEntry::write(std::ostream &stream, bool revEndian) {
+    auto pos = stream.tellp();
+    auto nameOffsetPos = stream.tellp();
+    writeNumber(std::uint32_t(0), stream, revEndian);
+    auto dataOffsetPos = stream.tellp();
+    writeNumber(std::uint32_t(0), stream, revEndian);
+    std::uint16_t numEntries = std::visit([](const auto &entries) { return entries.size(); }, data);
+    writeNumber(numEntries, stream, revEndian);
+    UsdType entryType = (UsdType)data.index();
+    writeNumber((std::uint8_t)entryType, stream, revEndian);
+    stream.put('\0'); // padding
+    auto pos2 = stream.tellp();
+    {
+        TemporarySeekO ts(stream, nameOffsetPos);
+        writeNumber(std::uint32_t(pos2 - pos), stream, revEndian);
+    }
+    writeNullTerminatedStr(name, stream);
+    pos2 = stream.tellp();
+    {
+        TemporarySeekO ts(stream, dataOffsetPos);
+        writeNumber(std::uint32_t(pos2 - pos), stream, revEndian);
+    }
+    switch (entryType) {
+        case UsdType::String:
+        {
+            auto &str = std::get<std::string>(data);
+            writeFixedStr(str, stream, str.size());
+        }
+        break;
+
+        case UsdType::Int32:
+        for (auto val: std::get<std::vector<std::uint32_t>>(data)) {
+            writeNumber(val, stream, revEndian);
+        }
+        break;
+
+        case UsdType::Float:
+        for (auto val: std::get<std::vector<float>>(data)) {
+            writeNumber(val, stream, revEndian);
+        }
+        break;
+    };
+}
+#endif
+
+void Usd1::read(std::istream &stream, const BaseHeader &header) {
+    data.resize(sectionSize - 8);
+    stream.read(data.data(), data.size());
+}
+
+void Usd1::write(std::ostream &stream, const BaseHeader &header) {
+    sectionSize = data.size() + 8;
+    stream.write(data.data(), data.size());
+}
+
 void Pan1::read(std::istream &stream, const BaseHeader &header) {
     bool revEndian = header.revEndian();
     flags = readNumber<std::uint8_t>(stream, revEndian);
@@ -673,7 +768,12 @@ void Brlyt::read(std::istream &stream) {
             curGroupPane = parentGroupPane;
             parentGroupPane = curGroupPane->parent.lock();
         } else if (sectionHeader == "usd1") {
-            // TODO add support for usd1?
+            auto associatedPane = std::dynamic_pointer_cast<Pan1>(curPane);
+            if (associatedPane) {
+                auto &usd1 = associatedPane->userData.emplace();
+                usd1.sectionSize = sectionSize;
+                usd1.read(stream, *this);
+            }
         }
 
         if (addPane) {
@@ -697,6 +797,13 @@ template<class Pane, class SecCount>
 static void writePanes(Pane &pane, std::ostream &stream, const BaseHeader &header, const std::string &startTag, const std::string &endTag, SecCount &secCount) {
     writeSection(pane.signature(), pane, stream, header);
     ++secCount;
+    auto pan1 = dynamic_cast<Pan1 *>(&pane);
+    if (pan1) {
+        if (pan1->userData.has_value()) {
+            writeSection(Usd1::MAGIC, pan1->userData.value(), stream, header);
+            ++secCount;
+        }
+    }
 
     if (!pane.children.empty()) {
         secCount += 2;

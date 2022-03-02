@@ -1,5 +1,7 @@
 #include "common.h"
 #include <iostream>
+#include <optional>
+#include <variant>
 
 #ifndef BECQUEREL_BRLYT_H
 #define BECQUEREL_BRLYT_H
@@ -201,11 +203,33 @@ struct Mat1 : Section {
     void write(std::ostream &stream, const BaseHeader &header);
 };
 
+#if 0
+enum class UsdType : std::uint8_t {
+    String, Int32, Float
+};
+
+struct UsdEntry {
+    std::string name;
+    std::variant<std::string, std::vector<std::uint32_t>, std::vector<float>> data;
+    void read(std::istream &stream, bool revEndian);
+    void write(std::ostream &stream, bool revEndian);
+};
+#endif
+
+struct Usd1 : Section {
+    static inline const std::string MAGIC = "usd1";
+    std::uint32_t sectionSize;
+    std::vector<char> data; // TODO parse the data
+    void read(std::istream &stream, const BaseHeader &header);
+    void write(std::ostream &stream, const BaseHeader &header);
+};
+
 struct Pan1 : BasePane {
     static inline const std::string MAGIC = "pan1";
     static inline const std::array<OriginX, 3> ORIGIN_X_MAP = {OriginX::LEFT, OriginX::CENTER, OriginX::RIGHT};
     static inline const std::array<OriginY, 3> ORIGIN_Y_MAP = {OriginY::TOP, OriginY::CENTER, OriginY::BOTTOM};
     std::uint8_t flags;
+    std::optional<Usd1> userData;
     void read(std::istream &stream, const BaseHeader &header);
     void write(std::ostream &stream, const BaseHeader &header);
     virtual std::string signature();
