@@ -164,6 +164,9 @@ void PaiTagEntry::write(std::ostream &stream, bool revEndian) {
 std::string readFixedStr(std::istream &stream, int len) {
     std::string res(len, '\0');
     stream.read(res.data(), len);
+    while (!res.empty() && res.back() == '\0') {
+        res.pop_back();
+    }
     return res;
 }
 
