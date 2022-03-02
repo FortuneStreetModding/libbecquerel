@@ -742,7 +742,7 @@ void Brlyt::write(std::ostream &stream) {
         writePanes(*rootPane, stream, *this, "pas1", "pae1", sectionCount);
     }
     if (rootGroup) {
-        writePanes(*rootGroup, stream, *this, "pas1", "pae1", sectionCount);
+        writePanes(*rootGroup, stream, *this, "grs1", "gre1", sectionCount);
     }
 
     {
