@@ -1,5 +1,6 @@
 #include "brlyt.h"
 #include <codecvt>
+#include <locale>
 #include <fstream>
 
 using namespace std;
